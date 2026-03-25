@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
-import { MessageCircle, MapPin, Store, Star, Loader2, PlayCircle, Sparkles, Search, Globe, Flame, Edit3, Send, Trash2, UserPlus, X, Target, Crosshair } from 'lucide-react';
+import { MessageCircle, MapPin, Store, Star, Loader2, PlayCircle, Sparkles, Search, Globe, Flame, Edit3, Send, Trash2, UserPlus, X, Target, Crosshair, Phone } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -49,6 +49,9 @@ function App() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
   
   // Nilah CRM Engine Mode
   const [testMode, setTestMode] = useState(() => localStorage.getItem('kf_testMode') !== 'false');
@@ -166,6 +169,32 @@ function App() {
         setLeads([data[0], ...leads]);
         setIsModalOpen(false);
         setNewLead({nombre_salon: '', telefono: '', direccion: '', sitioweb: ''});
+    }
+  }
+
+  async function handleUpdateLead(e) {
+    e.preventDefault();
+    if (!editingLead) return;
+    const { error } = await supabase.from('leads_salones')
+        .update({
+            nombre_salon: editingLead.nombre_salon,
+            telefono: editingLead.telefono,
+            direccion: editingLead.direccion,
+            sitioweb: editingLead.sitioweb,
+            url_facebook: editingLead.url_facebook,
+            url_instagram: editingLead.url_instagram,
+            mensaje_apertura: editingLead.mensaje_apertura,
+            mensaje_activador: editingLead.mensaje_activador
+        })
+        .eq('id', editingLead.id);
+    
+    if (!error) {
+        setLeads(leads.map(l => l.id === editingLead.id ? editingLead : l));
+        setIsEditModalOpen(false);
+        setEditingLead(null);
+    } else {
+        alert("Error guardando cambios del lead.");
+        console.error(error);
     }
   }
 
@@ -342,7 +371,10 @@ function App() {
                             <Flame size={14} className="fill-orange-500 text-orange-500"/>{lead.puntuacion_lead}/10
                         </div>
                     )}
-                    <button onClick={() => deleteLead(lead)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                    <button onClick={() => { setEditingLead(lead); setIsEditModalOpen(true); }} className="p-1.5 bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors opacity-0 group-hover:opacity-100" title="Editar Lead">
+                        <Edit3 size={16} />
+                    </button>
+                    <button onClick={() => deleteLead(lead)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-full transition-colors opacity-0 group-hover:opacity-100" title="Eliminar/Blacklist">
                         <Trash2 size={16} />
                     </button>
                 </div>
@@ -353,6 +385,10 @@ function App() {
                       <div className="flex items-start text-sm text-slate-500 font-medium">
                         <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5 mr-2" />
                         <span className="line-clamp-2 leading-snug">{lead.direccion || 'Ubicación no precisada'}</span>
+                      </div>
+                      <div className="flex items-start text-sm text-slate-500 font-medium">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0 mt-0.5 mr-2" />
+                        <span className="font-bold text-slate-700">{lead.telefono || 'Sin número'}</span>
                       </div>
                       <div className="flex items-center gap-4 text-sm font-medium mt-1">
                           <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
@@ -445,6 +481,69 @@ function App() {
               <div className="mt-4 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 text-white font-bold bg-indigo-600 hover:bg-indigo-700 rounded-xl flex justify-center items-center gap-2">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edición */}
+      {isEditModalOpen && editingLead && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Edit3 size={20} className="text-indigo-600"/> Editar Prospecto</h2>
+              <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="text-slate-400 hover:text-slate-600 p-1"><X size={20} /></button>
+            </div>
+            
+            <form onSubmit={handleUpdateLead} className="p-6 flex flex-col gap-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Nombre del Negocio</label>
+                    <input type="text" required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" 
+                           value={editingLead.nombre_salon || ''} onChange={e => setEditingLead({...editingLead, nombre_salon: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Teléfono</label>
+                    <input type="text" required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" 
+                           value={editingLead.telefono || ''} onChange={e => setEditingLead({...editingLead, telefono: e.target.value})} />
+                  </div>
+              </div>
+
+              <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Dirección</label>
+                  <input type="text" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" 
+                         value={editingLead.direccion || ''} onChange={e => setEditingLead({...editingLead, direccion: e.target.value})} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1.5"><FacebookIcon/> Link de Facebook</label>
+                    <input type="url" className="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm" 
+                           value={editingLead.url_facebook || ''} onChange={e => setEditingLead({...editingLead, url_facebook: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1.5"><InstagramIcon/> Link de Instagram</label>
+                    <input type="url" className="w-full px-4 py-2.5 bg-pink-50/50 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-500 text-sm" 
+                           value={editingLead.url_instagram || ''} onChange={e => setEditingLead({...editingLead, url_instagram: e.target.value})} />
+                  </div>
+              </div>
+              
+              <div className="pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-purple-600 uppercase mb-1.5">Mensaje 1 (Apertura AI)</label>
+                  <textarea className="w-full px-4 py-3 bg-purple-50/50 border border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm font-medium resize-vertical min-h-[80px]" 
+                         value={editingLead.mensaje_apertura || ''} onChange={e => setEditingLead({...editingLead, mensaje_apertura: e.target.value})} />
+              </div>
+              
+              <div>
+                  <label className="block text-xs font-bold text-indigo-600 uppercase mb-1.5">Mensaje 2 (Activador Analista)</label>
+                  <textarea className="w-full px-4 py-3 bg-indigo-50/50 border border-indigo-100 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm font-medium resize-vertical min-h-[80px]" 
+                         value={editingLead.mensaje_activador || ''} onChange={e => setEditingLead({...editingLead, mensaje_activador: e.target.value})} />
+              </div>
+
+              <div className="mt-2 flex gap-3 pt-4 border-t border-slate-100 sticky bottom-0 bg-white pb-2">
+                <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="flex-[1] py-3.5 text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                <button type="submit" className="flex-[2] py-3.5 text-white font-bold bg-indigo-600 hover:bg-indigo-700 rounded-xl flex justify-center items-center gap-2 shadow-md hover:shadow-lg transition-all">Guardar Cambios del Prospecto</button>
               </div>
             </form>
           </div>

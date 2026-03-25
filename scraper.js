@@ -141,6 +141,37 @@ async function fetchPlaces() {
                     }
                 }
 
+                // Si pasa todo, verificar WhatsApp (Evolution API)
+                const evoUrl = process.env.EVOLUTION_API_URL;
+                const evoInstance = process.env.EVOLUTION_API_INSTANCE;
+                const evoApiKey = process.env.EVOLUTION_API_KEY;
+                let hasWA = true; // Por defecto asumimos true si la API falla
+                
+                if (evoUrl && evoInstance && evoApiKey) {
+                    let cleanPhone = telefono.replace(/\D/g, '');
+                    if (cleanPhone.length === 9 && cleanPhone.startsWith('9')) {
+                        cleanPhone = '51' + cleanPhone;
+                    }
+                    try {
+                        const waCheckUrl = `${evoUrl}/chat/whatsappNumbers/${encodeURIComponent(evoInstance)}`;
+                        const waCheckRes = await axios.post(waCheckUrl, { numbers: [cleanPhone] }, {
+                            headers: { 'Content-Type': 'application/json', 'apikey': evoApiKey },
+                            timeout: 8000
+                        });
+                        const data = waCheckRes.data;
+                        if (Array.isArray(data) && data.length > 0) {
+                            if (!data[0].exists) {
+                                hasWA = false;
+                                console.log(`   📴 [Sin WhatsApp] "${place.displayName?.text}" (${cleanPhone}) -> DESCARTADO`);
+                            }
+                        }
+                    } catch (err) {
+                        console.log(`   ⚠️ No se pudo validar WA para ${cleanPhone} (Manteniendo por precaución)`);
+                    }
+                }
+
+                if (!hasWA) continue; // Si se confirmó que no tiene WA, no lo guardamos
+
                 // Si pasa todo, insertar
                 const lead = {
                     nombre_salon: place.displayName?.text || 'Desconocido',
@@ -155,45 +186,77 @@ async function fetchPlaces() {
                 };
 
                 // ============================================
-                // BÚSQUEDA PROFUNDA ORGÁNICA (API OFICIAL)
+                // BÚSQUEDA PROFUNDA HÍBRIDA (API SERPER + WEB CRAWLING)
                 // ============================================
                 let info_rrss_text = null;
-                const GOOGLE_CX = process.env.GOOGLE_CUSTOM_SEARCH_CX;
+                const SERPER_KEY = process.env.SERPER_API_KEY;
 
-                if (GOOGLE_CX) {
+                // 1. Intento por API (Serper.dev - Confiable 100%)
+                if (SERPER_KEY) {
                     try {
-                        console.log(`   🕵️‍♂️ Buscando contexto orgánico oficial para: ${lead.nombre_salon}...`);
-                        const searchStr = `"${lead.nombre_salon}" ${ubicacion} instagram OR facebook`;
-                        const resSearch = await axios.get(`https://www.googleapis.com/customsearch/v1`, {
-                            params: {
-                                key: GOOGLE_MAPS_API_KEY,
-                                cx: GOOGLE_CX,
-                                q: searchStr,
-                                num: 3,
-                                hl: 'es'
-                            }
+                        const searchStr = `${lead.nombre_salon} ${ubicacion} instagram OR facebook`;
+                        const resSearch = await axios.post(`https://google.serper.dev/search`, 
+                        {
+                            q: searchStr,
+                            gl: 'pe',
+                            hl: 'es',
+                            num: 5
+                        }, 
+                        {
+                            headers: {
+                                'X-API-KEY': SERPER_KEY,
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 5000
                         });
+                        
+                        const items = resSearch.data.organic || [];
+                        let extractedText = [];
 
-                        const items = resSearch.data.items || [];
-                        if (items.length > 0) {
-                            let extractedText = [];
-                            for (const res of items) {
-                                extractedText.push(`[${res.title}] ${res.snippet}`);
-                                
-                                const lcUrl = res.link.toLowerCase();
-                                if (!lead.url_instagram && lcUrl.includes('instagram.com')) lead.url_instagram = res.link;
-                                if (!lead.url_facebook && (lcUrl.includes('facebook.com') || lcUrl.includes('fb.com'))) lead.url_facebook = res.link;
-                            }
+                        items.forEach(res => {
+                            extractedText.push(`[${res.title}] ${res.snippet}`);
+                            const lcUrl = res.link.toLowerCase();
+                            if (!lead.url_instagram && lcUrl.includes('instagram.com')) lead.url_instagram = res.link;
+                            if (!lead.url_facebook && (lcUrl.includes('facebook.com') || lcUrl.includes('fb.com'))) lead.url_facebook = res.link;
+                        });
+                        
+                        if (extractedText.length > 0) {
                             info_rrss_text = extractedText.join('\n\n');
-                            console.log(`     🌟 ¡Redes y descripciones orgánicas capturadas!`);
-                        } else {
-                            console.log(`     🔸 Sin resultados claros de RRSS orgánicas oficiales.`);
+                            console.log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev!`);
                         }
-                    } catch (error) {
-                        console.log(`     ⚠️ Error en búsqueda profunda oficial: ${error.response?.data?.error?.message || error.message}`);
+                    } catch (e) {
+                        console.log(`     ⚠️ API Serper inaccesible (${e.message}). Usando rastreo directo...`);
                     }
-                } else {
-                    console.log(`     ⚠️ Búsqueda profunda omitida: Falta GOOGLE_CUSTOM_SEARCH_CX en .env`);
+                }
+
+                // 2. RASTREO DIRECTO DEL SITIO WEB (Fallback Maestro)
+                if (lead.sitioweb && (!lead.url_instagram || !lead.url_facebook) && !lead.sitioweb.includes('facebook.com') && !lead.sitioweb.includes('instagram.com')) {
+                    try {
+                        console.log(`   🕸️  Rastreando sitio web oficial: ${lead.sitioweb}...`);
+                        const webRes = await axios.get(lead.sitioweb, { 
+                            timeout: 8000, 
+                            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } 
+                        });
+                        const html = webRes.data.toLowerCase();
+                        
+                        // Regex para cazar redes sociales en el código fuente
+                        if (!lead.url_instagram) {
+                            const igMatch = html.match(/href=["'](https?:\/\/(www\.)?instagram\.com\/[a-z0-9_\-\.]+)\/?["']/);
+                            if (igMatch) {
+                                lead.url_instagram = igMatch[1];
+                                console.log(`     📸 ¡Instagram hallado en el sitio web!`);
+                            }
+                        }
+                        if (!lead.url_facebook) {
+                            const fbMatch = html.match(/href=["'](https?:\/\/(www\.)?(facebook\.com|fb\.com)\/[a-z0-9_\-\.]+)\/?["']/);
+                            if (fbMatch) {
+                                lead.url_facebook = fbMatch[1];
+                                console.log(`     💙 ¡Facebook hallado en el sitio web!`);
+                            }
+                        }
+                    } catch (err) {
+                        console.log(`     🔸 No se pudo acceder al sitio web para rastreo profundo.`);
+                    }
                 }
 
                 lead.info_rrss = info_rrss_text;
