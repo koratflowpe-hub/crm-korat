@@ -98,7 +98,13 @@ async function fetchPlaces() {
                     continue;
                 }
 
-                const telefono = place.nationalPhoneNumber;
+                let rawPhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
+                let telefono = rawPhone.replace(/\D/g, '');
+                
+                // Si es un celular peruano de 9 dígitos que empieza con 9, agregar prefijo 51
+                if (telefono.length === 9 && telefono.startsWith('9')) {
+                    telefono = '51' + telefono;
+                }
 
                 // Chequear DB en vivo (Leads Activos)
                 const { data: dataLeads, error } = await supabase

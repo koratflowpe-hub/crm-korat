@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './lib/supabase';
-import { MessageCircle, MapPin, Store, Star, Loader2, PlayCircle, Sparkles, Search, Globe, Flame, Edit3, Send, Trash2, UserPlus, X, Target, Crosshair, Phone } from 'lucide-react';
+import { MessageCircle, MapPin, Store, Star, Loader2, PlayCircle, Sparkles, Search, Globe, Flame, Edit3, Send, Trash2, UserPlus, X, Target, Crosshair, Phone, Activity, ChevronDown, ChevronUp, Bot, ArrowRight, Zap } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -8,13 +8,27 @@ const ESTADOS = [
   'Pendiente Análisis IA',
   'Pendiente',
   'Enviar Campaña Automática',
-  'Campaña Enviada',
-  'Contactado',
-  'Respondió',
+  'Apertura Enviado',
+  'Respondió Apertura',
+  'Enviar Activador',
+  'Activador Enviado',
+  'Respondió Activador',
   'Reunión Agendada',
   'No Interesado',
   'Cliente Cerrado'
 ];
+
+const RadarScanIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 12l8.5 8.5"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07"/><path d="M15.54 8.46a5 5 0 0 0-7.08 7.08"/></svg>
+);
+
+const InstagramIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+);
+
+const FacebookIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+);
 
 function MapClickHandler({ setLat, setLng }) {
   useMapEvents({
@@ -25,6 +39,273 @@ function MapClickHandler({ setLat, setLng }) {
   });
   return null;
 }
+
+const getStatusColor = (status) => {
+    switch(status) {
+        case 'Apertura Enviado': return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'Respondió Apertura': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'Enviar Activador': return 'bg-purple-50 text-purple-700 border-purple-200';
+        case 'Activador Enviado': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        case 'Respondió Activador': return 'bg-teal-50 text-teal-700 border-teal-200';
+        case 'Reunión Agendada': return 'bg-green-50 text-green-700 border-green-200';
+        case 'Cliente Cerrado': return 'bg-gray-900 text-white border-gray-900';
+        case 'Pendiente Análisis IA': return 'bg-orange-50 text-orange-700 border-orange-200';
+        case 'Enviar Campaña Automática': return 'bg-rose-50 text-rose-700 border-rose-200';
+        default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+};
+
+const getTagStyle = (tag) => {
+    const t = tag.toUpperCase();
+    if (t.includes('CALIENTE')) return 'bg-orange-100 text-orange-700 border-orange-200';
+    if (t.includes('TIBIO')) return 'bg-amber-100 text-amber-700 border-amber-200';
+    if (t.includes('FRÍO') || t.includes('FRIO')) return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (t.includes('SIN WEB')) return 'bg-rose-100 text-rose-700 border-rose-200';
+    if (t.includes('CON WEB')) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (t.includes('SOLO REDES')) return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (t.includes('INSTAGRAM')) return 'bg-pink-100 text-pink-700 border-pink-200';
+    if (t.includes('FACEBOOK')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    return 'bg-slate-100 text-slate-500 border-slate-200';
+};
+
+const LeadCard = ({ lead, ESTADOS, updateEstado, updateNotas, updateMensajeApertura, updateMensajeActivador, deleteLead, testMode, setEditingLead, setIsEditModalOpen, formatWa }) => {
+   const [showStatusMenu, setShowStatusMenu] = useState(false);
+   const menuRef = useRef(null);
+
+   useEffect(() => {
+     function handleClickOutside(event) {
+       if (menuRef.current && !menuRef.current.contains(event.target)) setShowStatusMenu(false);
+     }
+     document.addEventListener("mousedown", handleClickOutside);
+     return () => document.removeEventListener("mousedown", handleClickOutside);
+   }, []);
+
+   const statusColor = getStatusColor(lead.estado_contacto);
+
+   return (
+       <div className="group bg-white rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200/60 hover:shadow-[0_8px_30px_-8px_rgba(0,0,0,0.12)] transition-all duration-300 flex flex-col overflow-visible relative">
+           
+           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                <button onClick={() => { setEditingLead(lead); setIsEditModalOpen(true); }} className="p-2 bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100/50 text-slate-400 hover:text-indigo-600 rounded-full transition-all md:opacity-0 group-hover:opacity-100 hover:scale-110" title="Editar Lead">
+                    <Edit3 size={15} />
+                </button>
+                <button onClick={() => deleteLead(lead)} className="p-2 bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100/50 text-slate-400 hover:text-rose-500 rounded-full transition-all md:opacity-0 group-hover:opacity-100 hover:scale-110" title="Eliminar/Blacklist">
+                    <Trash2 size={15} />
+                </button>
+           </div>
+
+           <div className="px-6 pt-6 pb-4">
+               <div className="flex items-start justify-between pr-16 mb-2">
+                   <h3 className="font-extrabold text-[1.05rem] tracking-tight leading-tight text-slate-800 line-clamp-2 pr-2">{lead.nombre_salon}</h3>
+               </div>
+
+               {lead.tags_ia && lead.tags_ia.length > 0 && (
+                   <div className="flex flex-wrap gap-1.5 mt-1">
+                       {lead.tags_ia.map((tag, idx) => (
+                           <span key={idx} className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border shadow-sm transition-colors ${getTagStyle(tag)}`}>{tag}</span>
+                       ))}
+                   </div>
+               )}
+               
+               <div className="flex flex-wrap items-center gap-2 mt-3 mb-4 relative" ref={menuRef}>
+                   <div 
+                      onClick={() => setShowStatusMenu(!showStatusMenu)} 
+                      className={`cursor-pointer px-3.5 py-1.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all outline-none ${statusColor} hover:brightness-95 shadow-sm`}
+                   >
+                       <Activity size={13} strokeWidth={2.5}/>
+                       <span className="truncate max-w-[130px]">{lead.estado_contacto || 'Pendiente'}</span>
+                       <ChevronDown size={14} className={`transition-transform duration-200 ${showStatusMenu ? 'rotate-180' : ''}`} />
+                   </div>
+                   
+                   {showStatusMenu && (
+                       <div className="absolute left-0 top-full mt-2 w-56 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                           <div className="max-h-64 overflow-y-auto custom-scrollbar p-1.5">
+                               <div className="px-3 py-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">Cambiar Etapa Manual</div>
+                               {ESTADOS.map(st => (
+                                   <div 
+                                      key={st} 
+                                      onClick={() => { updateEstado(lead.id, st); setShowStatusMenu(false); }}
+                                      className={`px-3 py-2.5 text-xs font-bold cursor-pointer transition-colors rounded-xl ${lead.estado_contacto === st ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                                   >
+                                      {st}
+                                   </div>
+                               ))}
+                           </div>
+                       </div>
+                   )}
+
+                   {lead.puntuacion_lead > 0 && (
+                       <div className="bg-orange-50 border border-orange-200 text-orange-700 font-bold px-2.5 py-1.5 rounded-full text-xs flex items-center gap-1 shadow-sm">
+                           <Flame size={13} className="fill-orange-500 text-orange-500"/>{lead.puntuacion_lead}/10
+                       </div>
+                   )}
+               </div>
+
+               <div className="flex flex-col gap-2.5 text-[13px] font-medium text-slate-500">
+                   <div className="flex items-start">
+                       <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5 mr-2" />
+                       <span className="line-clamp-1 leading-snug">{lead.direccion || 'Ubicación no precisada'}</span>
+                   </div>
+                   <div className="flex items-center">
+                       <Phone className="w-4 h-4 text-slate-400 shrink-0 mr-2" />
+                       <span className="font-bold text-slate-700">{lead.telefono || 'Sin número'}</span>
+                   </div>
+                   
+                   <div className="flex items-center gap-3 mt-1.5">
+                       <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                           <Star className="w-3.5 h-3.5 fill-current" /> <span className="text-xs font-bold">{lead.calificacion || '-'}</span> <span className="text-amber-600/70 text-[10px]">({lead.total_resenas||0})</span>
+                       </div>
+                       {lead.sitioweb && <a href={lead.sitioweb?.startsWith('http') ? lead.sitioweb : `https://${lead.sitioweb}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-indigo-500 transition-colors"><Globe size={15}/></a>}
+                       {lead.url_instagram && <a href={lead.url_instagram?.startsWith('http') ? lead.url_instagram : `https://${lead.url_instagram}`} target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-pink-500 transition-colors"><InstagramIcon /></a>}
+                       {lead.url_facebook && <a href={lead.url_facebook?.startsWith('http') ? lead.url_facebook : `https://${lead.url_facebook}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-600 transition-colors"><FacebookIcon /></a>}
+                   </div>
+               </div>
+           </div>
+
+           <div className="border-t border-slate-100/80 bg-slate-50/50 pt-2">
+                  <div className="px-6 pb-5 space-y-4 transition-all">
+                      {lead.score_interes !== null && lead.score_interes !== undefined && (
+                        <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200/70 shadow-sm">
+                            <Flame size={16} className={lead.score_interes > 60 ? 'text-orange-500' : 'text-slate-400'}/>
+                            <div className="flex-1 bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                <div className={`h-full ${lead.score_interes > 60 ? 'bg-gradient-to-r from-orange-400 to-rose-500' : lead.score_interes > 30 ? 'bg-amber-400' : 'bg-slate-400'}`} style={{width: `${Math.min(100, Math.max(0, lead.score_interes))}%`}}></div>
+                            </div>
+                            <span className="text-[11px] font-extrabold text-slate-700">{lead.score_interes} pts</span>
+                        </div>
+                      )}
+                      {lead.dolor_detectado && (
+                        <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-sm">
+                          <span className="text-[10px] font-black text-rose-400 tracking-widest uppercase mb-1.5 flex items-center gap-1.5"><Target size={12}/> Diagnóstico IA (Dolor)</span>
+                          <p className="text-[13px] text-slate-700 leading-relaxed font-medium">{lead.dolor_detectado}</p>
+                        </div>
+                      )}
+
+                      {lead.gancho_venta && (
+                        <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm">
+                          <span className="text-[10px] font-black text-emerald-500 tracking-widest uppercase mb-1.5 flex items-center gap-1.5"><ArrowRight size={12}/> Ángulo de Venta</span>
+                          <p className="text-[13px] text-slate-700 leading-relaxed font-medium">{lead.gancho_venta}</p>
+                        </div>
+                      )}
+
+                      {lead.estado_contacto === 'Pendiente' && (
+                         <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 p-4 rounded-xl border border-indigo-100 shadow-sm mt-3 animate-in fade-in">
+                             <span className="text-[10px] font-black text-indigo-600 tracking-widest uppercase mb-2 block flex items-center gap-1.5"><Edit3 size={12}/> Borrador: Mensaje de Apertura</span>
+                             <textarea 
+                                className="w-full text-[13px] font-medium text-slate-700 bg-white border border-indigo-100 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none resize-none min-h-[90px] shadow-sm transition-all"
+                                defaultValue={lead.mensaje_apertura || ''} 
+                                onBlur={(e) => updateMensajeApertura(lead.id, e.target.value)}
+                             />
+                             <p className="text-[10px] text-indigo-400/80 mt-2 font-medium italic">Edita el texto a tu gusto antes de lanzarlo.</p>
+                         </div>
+                      )}
+
+                      {['Apertura Enviado', 'Respondió Apertura'].includes(lead.estado_contacto) && (
+                         <div className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 p-4 rounded-xl border border-purple-100 shadow-sm mt-3 animate-in fade-in">
+                             <span className="text-[10px] font-black text-purple-600 tracking-widest uppercase mb-2 block flex items-center gap-1.5"><Edit3 size={12}/> Borrador: Mensaje Activador</span>
+                             <textarea 
+                                className="w-full text-[13px] font-medium text-slate-700 bg-white border border-purple-100 rounded-xl p-3 focus:ring-2 focus:ring-purple-500 outline-none resize-none min-h-[90px] shadow-sm transition-all"
+                                defaultValue={lead.mensaje_activador || ''} 
+                                onBlur={(e) => updateMensajeActivador(lead.id, e.target.value)}
+                             />
+                             <p className="text-[10px] text-purple-400/80 mt-2 font-medium italic">Si el cliente no responde, este será el mensaje de rescate.</p>
+                         </div>
+                      )}
+
+                      {lead.ultimo_mensaje_cliente && (
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm mt-4 animate-in fade-in relative">
+                             <div className="absolute -top-2.5 left-4 bg-slate-800 text-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-700 shadow-sm uppercase tracking-widest flex items-center gap-1.5"><MessageCircle size={10}/> El cliente escribió:</div>
+                             <p className="text-[14px] text-slate-700 italic font-medium mt-1">"{lead.ultimo_mensaje_cliente}"</p>
+                          </div>
+                      )}
+
+                      {['Respondió Apertura', 'Respondió Activador', 'Apertura Enviado', 'Activador Enviado', 'Reunión Agendada', 'No Interesado'].includes(lead.estado_contacto) && (
+                         <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200 mt-3 shadow-inner">
+                            <div className="flex justify-between items-center mb-2">
+                               <span className="text-[10px] font-black text-slate-500 tracking-widest uppercase flex items-center gap-1.5"><Bot size={12}/> Copiloto IA </span>
+                               <button onClick={() => updateEstado(lead.id, 'Generar Sugerencia IA')} className="text-[10px] bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-xl shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all font-black uppercase tracking-tighter active:scale-95">
+                                   🤖 Generar Estrategia
+                               </button>
+                            </div>
+
+                            {lead.sugerencia_respuesta_ia && (
+                               <div className="space-y-3 mt-3 pt-3 border-t border-slate-200 animate-in fade-in slide-in-from-top-2">
+                                  <div className="flex gap-2">
+                                     {lead.tipo_respuesta && <span className="px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded-lg shadow-sm">{lead.tipo_respuesta}</span>}
+                                     {lead.lectura_rapida && <span className="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 text-[9px] font-bold rounded-lg line-clamp-1">{lead.lectura_rapida}</span>}
+                                  </div>
+                                  <div className="bg-white p-3.5 rounded-2xl border border-indigo-100 shadow-sm">
+                                     <p className="text-[13px] text-indigo-950 leading-relaxed font-bold italic">"{lead.sugerencia_respuesta_ia}"</p>
+                                  </div>
+                                  {lead.nota_tactica && (
+                                     <div className="flex items-start gap-1.5 text-[11px] font-bold text-slate-500">
+                                        <Zap size={10} className="mt-0.5 shrink-0 text-amber-500" />
+                                        <span>{lead.nota_tactica}</span>
+                                     </div>
+                                  )}
+                               </div>
+                            )}
+                         </div>
+                      )}
+                      
+                      <div className="relative group/note mt-2">
+                          <textarea
+                              className="w-full text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none resize-none min-h-[70px] shadow-sm transition-all"
+                              placeholder="Añadir nota interna para el equipo..." defaultValue={lead.notas || ''} onBlur={(e) => updateNotas(lead.id, e.target.value)}
+                          />
+                      </div>
+                  </div>
+           </div>
+
+           <div className="mt-auto"></div>
+
+           <div className="p-4 bg-white border-t border-slate-100/80 rounded-b-3xl flex gap-2.5 items-center">
+               
+               {lead.estado_contacto === 'Pendiente' ? (
+                   <button onClick={() => updateEstado(lead.id, 'Enviar Campaña Automática')} className="flex-[3] flex justify-center items-center px-4 py-3.5 text-sm font-extrabold rounded-2xl text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md hover:-translate-y-0.5">
+                     <Send className="w-4 h-4 mr-2" /> Lanzar Apertura
+                   </button>
+               ) : lead.estado_contacto === 'Apertura Enviado' ? (
+                   <div className="flex-[3] flex flex-row gap-2">
+                     <button onClick={() => updateEstado(lead.id, 'Enviar Activador')} className="flex-1 flex justify-center items-center px-2 py-3.5 text-[12px] font-bold rounded-2xl text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all shadow-sm group">
+                       <span className="text-base mr-1 group-hover:scale-110 transition-transform">🚀</span> Push Activador
+                     </button>
+                     <button onClick={() => updateEstado(lead.id, 'Respondió Apertura')} className="flex-1 flex justify-center items-center px-2 py-3.5 text-[12px] font-bold rounded-2xl text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm group">
+                       <span className="text-base mr-1 group-hover:scale-110 transition-transform">✅</span> Respondió
+                     </button>
+                   </div>
+               ) : (lead.estado_contacto === 'Respondió Apertura' || lead.estado_contacto === 'Respondió Activador' || lead.estado_contacto === 'Activador Enviado') ? (
+                   <div className="flex-[3] flex flex-row gap-2">
+                     <button onClick={() => updateEstado(lead.id, 'Reunión Agendada')} className="flex-1 flex justify-center items-center px-1 py-3.5 text-[11px] font-bold rounded-2xl text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm group">
+                       <span className="text-base mr-1 group-hover:scale-110 transition-transform">✅</span> Agendar
+                     </button>
+                     <button onClick={() => updateEstado(lead.id, 'Enviar Activador')} className="flex-1 flex justify-center items-center px-1 py-3.5 text-[11px] font-bold rounded-2xl text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all shadow-sm group">
+                       <span className="text-base mr-1 group-hover:scale-110 transition-transform">🚀</span> Push
+                     </button>
+                     <button onClick={() => updateEstado(lead.id, 'No Interesado')} className="flex-1 flex justify-center items-center px-1 py-3.5 text-[11px] font-bold rounded-2xl text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all shadow-sm group">
+                       <span className="text-base mr-1 group-hover:scale-110 transition-transform">💀</span> Perder
+                     </button>
+                   </div>
+               ) : lead.estado_contacto === 'Reunión Agendada' ? (
+                   <button onClick={() => updateEstado(lead.id, 'Cliente Cerrado')} className="flex-[3] flex justify-center items-center px-4 py-3.5 text-sm font-black rounded-2xl text-white bg-slate-900 hover:bg-black transition-all shadow-md hover:-translate-y-0.5">
+                     🏆 Ganado (Cerrar)
+                   </button>
+               ) : (
+                   <div className="flex-[3] flex justify-center items-center px-4 py-3.5 text-[13px] font-bold rounded-2xl text-slate-400 border border-slate-200 bg-slate-50 cursor-not-allowed">
+                     {lead.estado_contacto === 'Pendiente Análisis IA' ? '🤖 IA Analizando local...' : 
+                      lead.estado_contacto === 'Enviar Campaña Automática' ? '⏱️ Enviando Whatsapp...' : 
+                      lead.estado_contacto === 'Enviar Activador' ? '⏱️ Lanzando Activador...' : lead.estado_contacto}
+                   </div>
+               )}
+
+               <a href={`https://wa.me/${formatWa(lead.telefono)}`} target="_blank" rel="noopener noreferrer" 
+                  className="flex-[1] flex justify-center items-center px-4 py-3.5 rounded-2xl bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                 <MessageCircle className="w-5 h-5" />
+               </a>
+           </div>
+
+       </div>
+   );
+};
 
 function App() {
   const [leads, setLeads] = useState([]);
@@ -137,6 +418,16 @@ function App() {
     if (!error) setLeads(leads.map(lead => lead.id === id ? { ...lead, notas: notasText } : lead));
   }
 
+  async function updateMensajeApertura(id, texto) {
+    const { error } = await supabase.from('leads_salones').update({ mensaje_apertura: texto }).eq('id', id);
+    if (!error) setLeads(leads.map(lead => lead.id === id ? { ...lead, mensaje_apertura: texto } : lead));
+  }
+
+  async function updateMensajeActivador(id, texto) {
+    const { error } = await supabase.from('leads_salones').update({ mensaje_activador: texto }).eq('id', id);
+    if (!error) setLeads(leads.map(lead => lead.id === id ? { ...lead, mensaje_activador: texto } : lead));
+  }
+
   async function deleteLead(leadObj) {
     if (!window.confirm(`¿Seguro que deseas eliminar a ${leadObj.nombre_salon}? \n\n${!testMode ? '(Modo Producción: Este lead irá a la Blacklist y nunca más se volverá a raspar de Google)' : '(Modo Pruebas: Podrá volver a ser capturado si vuelves a escanear)' }`)) return;
     
@@ -184,7 +475,9 @@ function App() {
             url_facebook: editingLead.url_facebook,
             url_instagram: editingLead.url_instagram,
             mensaje_apertura: editingLead.mensaje_apertura,
-            mensaje_activador: editingLead.mensaje_activador
+            mensaje_activador: editingLead.mensaje_activador,
+            score_interes: editingLead.score_interes,
+            sugerencia_respuesta_ia: editingLead.sugerencia_respuesta_ia
         })
         .eq('id', editingLead.id);
     
@@ -224,6 +517,14 @@ function App() {
      const mst = statusFilter === 'Todos' || lead.estado_contacto === statusFilter;
      return ms && mst;
   });
+
+  const leadsApertura = leads.filter(l => ['Apertura Enviado', 'Respondió Apertura', 'Enviar Activador', 'Activador Enviado', 'Respondió Activador', 'Reunión Agendada', 'Cliente Cerrado'].includes(l.estado_contacto)).length;
+  const leadsRespondieronApertura = leads.filter(l => ['Respondió Apertura', 'Enviar Activador', 'Activador Enviado', 'Respondió Activador', 'Reunión Agendada', 'Cliente Cerrado'].includes(l.estado_contacto)).length;
+  const tasaApertura = leadsApertura > 0 ? Math.round((leadsRespondieronApertura / leadsApertura) * 100) : 0;
+  
+  const leadsActivador = leads.filter(l => ['Activador Enviado', 'Respondió Activador', 'Reunión Agendada', 'Cliente Cerrado'].includes(l.estado_contacto)).length;
+  const leadsRespondieronActivador = leads.filter(l => ['Respondió Activador', 'Reunión Agendada', 'Cliente Cerrado'].includes(l.estado_contacto)).length;
+  const tasaActivador = leadsActivador > 0 ? Math.round((leadsRespondieronActivador / leadsActivador) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
@@ -356,6 +657,38 @@ function App() {
             </select>
         </div>
 
+        {/* Dashboard KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div>
+                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Aperturas</p>
+                   <p className="text-2xl font-black text-slate-800">{leadsApertura}</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center"><MessageCircle className="w-6 h-6 text-blue-500"/></div>
+            </div>
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div>
+                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Respuestas %</p>
+                   <p className="text-2xl font-black text-emerald-600">{tasaApertura}%</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center"><Target className="w-6 h-6 text-emerald-500"/></div>
+            </div>
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div>
+                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Activadores</p>
+                   <p className="text-2xl font-black text-slate-800">{leadsActivador}</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center"><Sparkles className="w-6 h-6 text-purple-500"/></div>
+            </div>
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div>
+                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cierres %</p>
+                   <p className="text-2xl font-black text-emerald-600">{tasaActivador}%</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center"><Flame className="w-6 h-6 text-emerald-500"/></div>
+            </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center h-64"><Loader2 className="h-10 w-10 animate-spin text-indigo-500 m-auto" /></div>
         ) : filteredLeads.length === 0 ? (
@@ -363,96 +696,20 @@ function App() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredLeads.map((lead) => (
-              <div key={lead.id} className="group bg-white rounded-3xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-slate-100 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col overflow-hidden relative">
-                
-                <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-                    {lead.puntuacion_lead > 0 && (
-                        <div className="bg-orange-100 border border-orange-200 text-orange-700 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1 shadow-sm">
-                            <Flame size={14} className="fill-orange-500 text-orange-500"/>{lead.puntuacion_lead}/10
-                        </div>
-                    )}
-                    <button onClick={() => { setEditingLead(lead); setIsEditModalOpen(true); }} className="p-1.5 bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 rounded-full transition-colors opacity-0 group-hover:opacity-100" title="Editar Lead">
-                        <Edit3 size={16} />
-                    </button>
-                    <button onClick={() => deleteLead(lead)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-full transition-colors opacity-0 group-hover:opacity-100" title="Eliminar/Blacklist">
-                        <Trash2 size={16} />
-                    </button>
-                </div>
-
-                <div className="p-6 pb-4">
-                  <div className="pr-20 mb-3"><h3 className="font-bold text-[1.1rem] leading-tight text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2">{lead.nombre_salon}</h3></div>
-                  <div className="flex flex-col gap-2 mt-2">
-                      <div className="flex items-start text-sm text-slate-500 font-medium">
-                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5 mr-2" />
-                        <span className="line-clamp-2 leading-snug">{lead.direccion || 'Ubicación no precisada'}</span>
-                      </div>
-                      <div className="flex items-start text-sm text-slate-500 font-medium">
-                        <Phone className="w-4 h-4 text-slate-400 shrink-0 mt-0.5 mr-2" />
-                        <span className="font-bold text-slate-700">{lead.telefono || 'Sin número'}</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm font-medium mt-1">
-                          <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
-                            <Star className="w-3.5 h-3.5 fill-current" />{lead.calificacion || '-'} <span className="text-amber-600/60 text-xs">({lead.total_resenas||0})</span>
-                          </div>
-                          {lead.sitioweb && (
-                              <a href={lead.sitioweb?.startsWith('http') ? lead.sitioweb : `https://${lead.sitioweb}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg hover:text-slate-900 transition-colors">
-                                  <Globe size={14} /> Web
-                              </a>
-                          )}
-                          {lead.url_instagram && (
-                              <a href={lead.url_instagram?.startsWith('http') ? lead.url_instagram : `https://${lead.url_instagram}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-pink-600 bg-pink-50 px-2.5 py-1 rounded-lg hover:bg-pink-100 transition-colors">
-                                  <InstagramIcon /> IG
-                              </a>
-                          )}
-                          {lead.url_facebook && (
-                              <a href={lead.url_facebook?.startsWith('http') ? lead.url_facebook : `https://${lead.url_facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors">
-                                  <FacebookIcon /> FB
-                              </a>
-                          )}
-                      </div>
-                  </div>
-                </div>
-
-                <div className="px-6 py-4 bg-gradient-to-b from-slate-50 to-white flex-1 space-y-3 border-y border-slate-100/60">
-                  {lead.dolor_detectado && (
-                    <div className="bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100/50">
-                      <span className="text-[10px] font-bold text-rose-500 tracking-widest mb-1 block">Diagnóstico de IA</span>
-                      <p className="text-sm text-rose-900/90 font-medium">{lead.dolor_detectado}</p>
-                    </div>
-                  )}
-                  {lead.gancho_venta && (
-                    <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100/50">
-                      <span className="text-[10px] font-bold text-emerald-500 tracking-widest mb-1 block">Ángulo de Venta</span>
-                      <p className="text-sm text-emerald-900/90 font-medium">{lead.gancho_venta}</p>
-                    </div>
-                  )}
-                  <div className="relative group/note mt-4">
-                      <div className="absolute top-2 left-3 text-slate-400 group-focus-within/note:text-indigo-500"><Edit3 size={14} /></div>
-                      <textarea
-                          className="w-full text-sm font-medium text-slate-700 bg-white border border-slate-200/80 rounded-xl p-2.5 pl-8 focus:ring-2 focus:ring-indigo-500 outline-none resize-none min-h-[60px]"
-                          placeholder="Añadir nota interna" defaultValue={lead.notas || ''} onBlur={(e) => updateNotas(lead.id, e.target.value)}
-                      />
-                  </div>
-                </div>
-
-                <div className="p-4 bg-white flex flex-col gap-3 border-t border-slate-100">
-                  <select
-                    value={lead.estado_contacto || 'Pendiente Análisis IA'}
-                    onChange={(e) => updateEstado(lead.id, e.target.value)}
-                    className={`custom-select text-sm font-bold rounded-xl px-3.5 py-3 border-0 ring-1 ring-inset outline-none w-full ${lead.estado_contacto === 'Enviar Campaña Automática' ? 'bg-indigo-50 text-indigo-700 ring-indigo-200' : 'bg-slate-50 text-slate-700 ring-slate-200'}`}
-                  >
-                    {ESTADOS.map(estado => <option key={estado} value={estado}>{estado}</option>)}
-                  </select>
-                  <div className="flex gap-2">
-                      <button onClick={() => updateEstado(lead.id, 'Enviar Campaña Automática')} className="flex-[2] flex justify-center items-center px-4 py-2.5 text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700">
-                        <Send className="w-4 h-4 mr-2" /> Lanzar Nilah
-                      </button>
-                      <a href={`https://wa.me/${formatWa(lead.telefono)}${lead.mensaje_apertura ? `?text=${encodeURIComponent(lead.mensaje_apertura)}` : ''}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex justify-center items-center px-4 py-2.5 rounded-xl border-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white">
-                        <MessageCircle className="w-5 h-5" />
-                      </a>
-                  </div>
-                </div>
-              </div>
+              <LeadCard 
+                  key={lead.id} 
+                  lead={lead} 
+                  ESTADOS={ESTADOS}
+                  updateEstado={updateEstado} 
+                  updateNotas={updateNotas}
+                  updateMensajeApertura={updateMensajeApertura}
+                  updateMensajeActivador={updateMensajeActivador}
+                  deleteLead={deleteLead} 
+                  testMode={testMode} 
+                  setEditingLead={setEditingLead} 
+                  setIsEditModalOpen={setIsEditModalOpen} 
+                  formatWa={formatWa}
+              />
             ))}
           </div>
         )}
@@ -529,6 +786,20 @@ function App() {
                   </div>
               </div>
               
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-5 mb-2">
+                  <div>
+                    <label className="block text-xs font-bold text-orange-600 uppercase mb-1.5 flex items-center gap-1.5"><Flame size={14}/> Score Interés (0-100)</label>
+                    <input type="number" min="0" max="100" className="w-full px-4 py-2.5 bg-orange-50/50 border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-sm font-bold" 
+                           value={editingLead.score_interes || ''} onChange={e => setEditingLead({...editingLead, score_interes: Number(e.target.value)})} />
+                  </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Sugerencia Especial IA</label>
+                  <textarea className="w-full px-4 py-3 bg-indigo-50/40 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm font-medium resize-vertical min-h-[60px]" 
+                         value={editingLead.sugerencia_respuesta_ia || ''} onChange={e => setEditingLead({...editingLead, sugerencia_respuesta_ia: e.target.value})} placeholder="La IA sugiere responder con..." />
+              </div>
+
               <div className="pt-2 border-t border-slate-100">
                   <label className="block text-xs font-bold text-purple-600 uppercase mb-1.5">Mensaje 1 (Apertura AI)</label>
                   <textarea className="w-full px-4 py-3 bg-purple-50/50 border border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm font-medium resize-vertical min-h-[80px]" 
@@ -552,17 +823,5 @@ function App() {
     </div>
   );
 }
-
-const RadarScanIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 12l8.5 8.5"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07"/><path d="M15.54 8.46a5 5 0 0 0-7.08 7.08"/></svg>
-  );
-
-const InstagramIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-);
-
-const FacebookIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-);
 
 export default App;
