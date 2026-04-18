@@ -7,9 +7,10 @@ export const PillarCard = ({ pillar, scriptCount, onClick }) => {
       className="cs-pillar-card"
     >
       <div className="cs-pillar-card-top">
-        <div className="cs-pillar-card-name-row">
-          <div className="cs-pillar-bar" style={{ backgroundColor: pillar.hex_color, width: '6px', height: '24px' }} />
-          <h4 className="cs-pillar-name" style={{ fontSize: '16px' }}>{pillar.name}</h4>
+        <div className="cs-pillar-card-name-row items-center">
+          <div className="cs-pillar-bar" style={{ backgroundColor: pillar.hex_color, width: '4px', height: '20px', borderRadius: '4px' }} />
+          <span className="text-xl mr-1">{pillar.emoji || '🎯'}</span>
+          <h4 className="cs-pillar-name" style={{ fontSize: '15px', fontWeight: 700 }}>{pillar.name}</h4>
         </div>
         <div className="cs-pillar-count" style={{ padding: '4px 10px', fontSize: '12px' }}>
           {scriptCount} Ideas

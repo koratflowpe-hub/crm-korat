@@ -16,4 +16,14 @@ export const COLUMN_ORDER = ['idea', 'writing', 'ready', 'recorded', 'published'
 export const PILLAR_COLORS = [
   '#6366F1', '#8B5CF6', '#EC4899', '#F43F5E',
   '#F59E0B', '#10B981', '#06B6D4', '#3B82F6',
+  '#64748B', '#0F172A', '#7C3AED', '#DB2777',
+  '#EA580C', '#059669', '#0284C7', '#2563EB',
+  '#4ADE80', '#FACC15', '#FB7185', '#A78BFA',
+  '#2DD4BF', '#F472B6'
+];
+
+export const SUGGESTED_EMOJIS = [
+  '🎯', '💡', '🔥', '🚀', '💅', '💎', '🎨', '📈', 
+  '🤝', '🎬', '📸', '✨', '🧠', '📚', '🛠️', '🌍',
+  '💰', '⭐️', '📣', '🎭', '🤳', '👑'
 ];

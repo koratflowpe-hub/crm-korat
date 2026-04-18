@@ -216,7 +216,8 @@ export default function CreatorStudio() {
                       <input autoFocus placeholder="Filtrar..." className="cs-pillar-search-input" value={pillarSearch} onChange={(e) => setPillarSearch(e.target.value)} />
                       {pillars.filter(p => !pillarSearch || p.name.toLowerCase().includes(pillarSearch.toLowerCase())).map(p => (
                         <button key={p.id} className="cs-pillar-opt" onClick={() => { setViewingPillarInfo(p); setShowPillarSelector(false); setPillarSearch(''); }}>
-                          {p.name}
+                          <span className="mr-2 text-lg">{p.emoji || '🎯'}</span>
+                          <span>{p.name}</span>
                         </button>
                       ))}
                     </motion.div>

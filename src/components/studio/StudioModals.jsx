@@ -6,12 +6,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { n8nService } from '../../services/n8nService';
-import { PILLAR_COLORS } from '../../utils/studioHelpers';
+import { PILLAR_COLORS, SUGGESTED_EMOJIS } from '../../utils/studioHelpers';
 
 // ─── Modal: Pillar ────────────────────────────────────────────────────────────
 export const PillarModal = ({ pillar, brand, onClose, onSave }) => {
   const [form, setForm] = useState({
     name: pillar?.name || '',
+    emoji: pillar?.emoji || '🎯',
     hex_color: pillar?.hex_color || PILLAR_COLORS[0],
     description: pillar?.description || '',
     objective: pillar?.objective || '',
@@ -52,6 +53,7 @@ export const PillarModal = ({ pillar, brand, onClose, onSave }) => {
     const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       name: form.name.trim(),
+      emoji: form.emoji,
       hex_color: form.hex_color,
       description: form.description,
       objective: form.objective,
@@ -106,13 +108,35 @@ export const PillarModal = ({ pillar, brand, onClose, onSave }) => {
           <div className="cs-modal-grid">
             <div className="cs-field-group">
               <div className="cs-field">
+                <label className="cs-label">Identidad Visual (Emoji & Color)</label>
+                <div className="flex gap-3 mb-4">
+                  <input 
+                    type="text" value={form.emoji} 
+                    onChange={e => setForm({...form, emoji: e.target.value})} 
+                    className="cs-input text-center w-14 text-xl" 
+                    placeholder="🎯"
+                  />
+                  <div className="flex-1 cs-color-palette flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100 max-h-24 overflow-y-auto">
+                    {PILLAR_COLORS.map(c => (
+                      <button key={c} onClick={() => setForm({...form, hex_color: c})} className={`cs-color-swatch ${form.hex_color === c ? 'cs-color-swatch--active' : ''}`} style={{ backgroundColor: c, width: '20px', height: '20px' }} />
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-1 mb-6">
+                   {SUGGESTED_EMOJIS.map(em => (
+                     <button 
+                        key={em} 
+                        onClick={() => setForm({...form, emoji: em})}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${form.emoji === em ? 'bg-primary/10 border-primary text-lg scale-110' : 'bg-white border-slate-100 hover:bg-slate-50 text-base'}`}
+                     >
+                       {em}
+                     </button>
+                   ))}
+                </div>
+
                 <label className="cs-label">Nombre del Pilar Maestro</label>
                 <input autoFocus type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Ej: Tutoriales Pro..." className="cs-input" />
-                <div className="cs-color-palette">
-                  {PILLAR_COLORS.map(c => (
-                    <button key={c} onClick={() => setForm({...form, hex_color: c})} className={`cs-color-swatch ${form.hex_color === c ? 'cs-color-swatch--active' : ''}`} style={{ backgroundColor: c }} />
-                  ))}
-                </div>
               </div>
               <div className="cs-field">
                 <label className="cs-label">Objetivo de Impacto</label>
@@ -169,7 +193,8 @@ export const PillarInfoModal = ({ pillar, onClose, onStartCreating, onEdit }) =>
         <div className="cs-modal-body cs-relative">
           <div className="cs-pillar-hero">
             <div className="cs-pillar-hero-icon" style={{ backgroundColor: pillar.hex_color }}>
-              <div className="cs-pillar-hero-glow" /><Zap size={36} fill="currentColor" />
+              <div className="cs-pillar-hero-glow" />
+              <span className="text-3xl z-10">{pillar.emoji || '🎯'}</span>
             </div>
             <div>
               <h2 className="cs-pillar-hero-name">{pillar.name}</h2>
@@ -259,7 +284,7 @@ export const ScriptModal = ({ pillars, defaultPillarId, defaultStatus, brandId, 
                 <Layers2 size={16} className="cs-input-icon" />
                 <select value={pillarId} onChange={e => setPillarId(e.target.value)} className="cs-input cs-input--pl cs-select">
                   <option value="">🎯 Sin pilar — Contenido Huérfano</option>
-                  {pillars.map(p => <option key={p.id} value={p.id}>💎 {p.name}</option>)}
+                  {pillars.map(p => <option key={p.id} value={p.id}>{p.emoji || '🎯'} {p.name}</option>)}
                 </select>
               </div>
             </div>
