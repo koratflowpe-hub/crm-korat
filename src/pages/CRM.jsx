@@ -79,8 +79,15 @@ export default function CRM() {
     
     // Suscripción a cambios
     const subZonas = supabase.channel('public:zonas_prospectadas').on('postgres_changes', { event: '*', schema: 'public', table: 'zonas_prospectadas' }, () => { fetchZonas(); }).subscribe();
-    return () => supabase.removeChannel(subZonas);
-  }, []);
+    
+    // Suscripción a cambios en leads (Actualización en tiempo real de la IA)
+    const subLeads = supabase.channel('public:leads_salones').on('postgres_changes', { event: '*', schema: 'public', table: 'leads_salones' }, () => { refetchLeads(); }).subscribe();
+
+    return () => {
+      supabase.removeChannel(subZonas);
+      supabase.removeChannel(subLeads);
+    };
+  }, [refetchLeads]);
 
   const handleCreateUser = (e) => {
     e.preventDefault();

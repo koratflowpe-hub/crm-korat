@@ -61,7 +61,14 @@ const LeadCard = ({
             <button onClick={() => updateEstado(lead.id, 'Cliente Cerrado')} className="flex-[4] py-3 text-xs font-bold uppercase tracking-widest bg-emerald-600 text-white rounded-lg shadow-sm">🏆 GANADO</button>
          );
       }
-      return <div className="flex-[4] py-3 text-[10px] font-bold uppercase tracking-wider rounded-lg text-slate-400 bg-slate-50 border border-slate-100 text-center opacity-50">Sincronizando...</div>;
+      if (s === 'Pendiente Análisis IA' || s === 'Generar Sugerencia IA') {
+         return (
+            <div className="flex-[4] py-3 text-[10px] font-bold uppercase tracking-wider rounded-lg text-amber-600 bg-amber-50 border border-amber-100 text-center animate-pulse flex items-center justify-center gap-2">
+               <Bot size={14}/> 🤖 Analizando...
+            </div>
+         );
+      }
+      return <div className="flex-[4] py-3 text-[10px] font-bold uppercase tracking-wider rounded-lg text-slate-400 bg-slate-50 border border-slate-100 text-center opacity-50 italic">Cargando...</div>;
    };
 
     return (
@@ -189,6 +196,13 @@ const LeadCard = ({
                         <span className="text-[10px] font-bold text-emerald-600 tracking-wider uppercase mb-1 flex items-center gap-1.5">Propuesta Valor</span>
                         <p className="text-xs text-slate-700 leading-relaxed font-medium">"{lead.gancho_venta}"</p>
                      </div>
+                   )}
+
+                   {lead.estado_contacto === 'Pendiente Análisis IA' && (
+                        <div className="space-y-4 animate-pulse">
+                            <div className="h-20 bg-slate-100 rounded-lg border border-slate-200 border-dashed"></div>
+                            <div className="h-24 bg-slate-100 rounded-lg border border-slate-200 border-dashed"></div>
+                        </div>
                    )}
 
                    {lead.estado_contacto === 'Pendiente' && (

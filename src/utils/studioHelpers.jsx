@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 
 export const STATUS_CONFIG = {
-  idea:             { label: 'Incubación',      color: 'bg-cyan-500',      icon: <Sparkles size={14} /> },
+  idea:             { label: 'Concepción',      color: 'bg-cyan-500',      icon: <Sparkles size={14} /> },
   writing:          { label: 'Guionización',    color: 'bg-violet-500',    icon: <Edit size={14} /> },
   ready:            { label: 'Listo 🎥',        color: 'bg-emerald-500',   icon: <Check size={14} /> },
   recorded:         { label: 'Grabado',         color: 'bg-rose-500',      icon: <Video size={14} /> },

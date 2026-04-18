@@ -36,6 +36,7 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
     handleBlockChange,
     saveBlocks,
     initTemplate,
+    resetBlocks,
     compileDraft,
     fetchBlocks,
     aiPromptTarget,
@@ -157,6 +158,7 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
                   onBlockChange={handleBlockChange}
                   onSaveBlocks={saveBlocks}
                   onInitTemplate={initTemplate}
+                  onResetBlocks={resetBlocks}
                   onCompileDraft={compileDraft}
                   onOpenAI={(field, label, blockId) => setAiPromptTarget({ field, label, blockId })}
                   onAddBlock={async () => {

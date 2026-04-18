@@ -53,7 +53,7 @@ export const KanbanColumn = ({ status, scripts, onAddIdea }) => {
                 className="cs-add-idea-btn"
               >
                 <Plus size={16} />
-                Incubar Idea
+                Crear Idea
               </button>
             )}
           </div>

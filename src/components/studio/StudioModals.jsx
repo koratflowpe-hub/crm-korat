@@ -244,7 +244,7 @@ export const ScriptModal = ({ pillars, defaultPillarId, defaultStatus, brandId, 
         <div className="cs-modal-header">
           <div className="cs-modal-header-left">
             <div className="cs-modal-icon cs-modal-icon--primary"><Video size={20} /></div>
-            <h2 className="cs-modal-title">Incubar Video</h2>
+            <h2 className="cs-modal-title">Nueva Idea de Video</h2>
           </div>
         </div>
         <div className="cs-modal-body">

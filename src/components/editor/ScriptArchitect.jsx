@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, Zap, Check, Sparkles, Trash2, Plus } from 'lucide-react';
+import { Layers, Zap, Check, Sparkles, Trash2, Plus, RotateCcw } from 'lucide-react';
+import ConfirmModal from '../ConfirmModal';
 
 export default function ScriptArchitect({ 
   blocks, 
@@ -8,11 +9,14 @@ export default function ScriptArchitect({
   onBlockChange, 
   onSaveBlocks, 
   onInitTemplate, 
+  onResetBlocks,
   onCompileDraft, 
   onOpenAI, 
   onAddBlock,
   onDeleteBlock
 }) {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
   if (blocks.length === 0) {
     return (
       <div className="py-24 text-center bg-muted/20 rounded-[50px] border-2 border-dashed border-border flex flex-col items-center">
@@ -50,17 +54,26 @@ export default function ScriptArchitect({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center mb-4 px-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 px-2 gap-3">
         <div className="flex items-center gap-2.5">
           <Zap size={18} className="text-amber-500 fill-amber-500/10" />
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Flujo Narrativo Dinámico</p>
         </div>
-        <button 
-          onClick={onCompileDraft}
-          className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700 shadow-sm"
-        >
-          <Check size={14} /> Unificar Guión Final
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="px-4 py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all text-[10px] font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-900 shadow-sm"
+            title="Elegir otra estructura"
+          >
+            <RotateCcw size={14} /> Reiniciar Estructura
+          </button>
+          <button 
+            onClick={onCompileDraft}
+            className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700 shadow-sm"
+          >
+            <Check size={14} /> Unificar Guión
+          </button>
+        </div>
       </div>
       
       <div className="space-y-4">
@@ -108,6 +121,19 @@ export default function ScriptArchitect({
       >
         <Plus size={16} /> Añadir Bloque
       </button>
+
+      <ConfirmModal 
+        isOpen={showResetConfirm}
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={() => {
+          onResetBlocks();
+          setShowResetConfirm(false);
+        }}
+        title="¿Reiniciar Arquitectura?"
+        message="Atención: Esta acción borrará todos los bloques de contenido actuales y te devolverá a la selección de plantillas. Hazlo solo si deseas descartar este borrador estructurado."
+        confirmText="Sí, reiniciar"
+        type="danger"
+      />
     </div>
   );
 }

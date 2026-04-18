@@ -226,6 +226,14 @@ export function useScriptEditor(scriptId) {
     setBlocksLoading(false);
   }, [scriptId]);
 
+  const resetBlocks = useCallback(async () => {
+    if (!scriptId) return;
+    setBlocksLoading(true);
+    await supabase.from('script_blocks').delete().eq('script_id', scriptId);
+    setBlocks([]);
+    setBlocksLoading(false);
+  }, [scriptId]);
+
   const compileDraft = useCallback(() => {
     const combined = blocks
       .map(b => b.text_content)
@@ -327,6 +335,7 @@ export function useScriptEditor(scriptId) {
     handleBlockChange,
     saveBlocks,
     initTemplate,
+    resetBlocks,
     compileDraft,
     // AI
     aiPromptTarget,
