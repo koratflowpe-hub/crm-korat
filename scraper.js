@@ -20,39 +20,42 @@ function normalizeStr(str) {
     return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-const ubicacion = process.argv[2] || "Huaral";
-const palabrasClavesRaw = process.argv[3] || "salon de belleza, spa";
-const lat = parseFloat(process.argv[4]) || -11.495;
-const lng = parseFloat(process.argv[5]) || -77.208;
-const radius = parseInt(process.argv[6]) || 5000;
-const limit = parseInt(process.argv[7]) || 15;
-const pureKeywordsRaw = process.argv[8] || "salon,belleza,uñas,pestañas,cejas,cabello,alisado,nails,lash,brows,pedicura,manicura,extensiones,planchado,microblading,spa";
+export async function runScraper({ 
+    ubicacion = "Huaral", 
+    palabrasClavesRaw = "salon de belleza, spa", 
+    lat = -11.495, 
+    lng = -77.208, 
+    radius = 5000, 
+    limit = 15, 
+    pureKeywordsRaw = "salon,belleza,uñas,pestañas,cejas,cabello,alisado,nails,lash,brows,pedicura,manicura,extensiones,planchado,microblading,spa" 
+}) {
+    const strictKeywords = pureKeywordsRaw.split(',').map(t => normalizeStr(t.trim())).filter(t => t.length > 0);
+    const keywords = palabrasClavesRaw.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    const SEARCH_QUERIES = keywords.map(kw => `${kw} en ${ubicacion}`);
 
-const strictKeywords = pureKeywordsRaw.split(',').map(t => normalizeStr(t.trim())).filter(t => t.length > 0);
-const keywords = palabrasClavesRaw.split(',').map(k => k.trim()).filter(k => k.length > 0);
-const SEARCH_QUERIES = keywords.map(kw => `${kw} en ${ubicacion}`);
+    let logs = [];
+    const log = (msg) => {
+        const fullMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+        logs.push(fullMsg);
+        console.log(fullMsg);
+    };
 
-async function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function fetchPlaces() {
     let insertados = 0;
     let omitidos = 0;
 
-    console.log(`\n======================================================`);
-    console.log(`🌐 Scrapeando Ojo de Águila: Lat ${lat}, Lng ${lng} R=${radius}m`);
-    console.log(`🔐 Filtro Estricto (Sin tildes): [${strictKeywords.join(', ')}]`);
-    console.log(`🎯 Límite Objetivo: ${limit} leads`);
-    console.log(`======================================================\n`);
+    log(`\n======================================================`);
+    log(`🌐 Scrapeando Ojo de Águila: Lat ${lat}, Lng ${lng} R=${radius}m`);
+    log(`🔐 Filtro Estricto (Sin tildes): [${strictKeywords.join(', ')}]`);
+    log(`🎯 Límite Objetivo: ${limit} leads`);
+    log(`======================================================\n`);
 
     for (const query of SEARCH_QUERIES) {
         if (insertados >= limit) {
-             console.log(`\n🛑 Límite alcanzado (${limit}). Terminando búsqueda.`);
+             log(`\n🛑 Límite alcanzado (${limit}). Terminando búsqueda.`);
              break;
         }
 
-        console.log(`\n🔍 Buscando: "${query}" ...`);
+        log(`\n🔍 Buscando: "${query}" ...`);
         try {
             const response = await axios.post(
                 'https://places.googleapis.com/v1/places:searchText',
@@ -75,7 +78,7 @@ async function fetchPlaces() {
             );
 
             const places = response.data.places || [];
-            console.log(`👉 ${places.length} candidatos crudos encontrados por Google. Filtrando basura...`);
+            log(`👉 ${places.length} candidatos crudos encontrados por Google. Filtrando basura...`);
 
             for (const place of places) {
                 if (insertados >= limit) break;
@@ -94,7 +97,7 @@ async function fetchPlaces() {
                 }
 
                 if (!isValid) {
-                    console.log(`   [Rechazado] "${place.displayName?.text}" (No cumple filtro estricto de negocio)`);
+                    log(`   [Rechazado] "${place.displayName?.text}" (No cumple filtro estricto de negocio)`);
                     continue;
                 }
 
@@ -114,7 +117,7 @@ async function fetchPlaces() {
                     
                 if (!error && dataLeads && dataLeads.length > 0) {
                     omitidos++;
-                    console.log(`   ⏳ [Omitido] ${place.displayName?.text} (Ya está en el CRM)`);
+                    log(`   ⏳ [Omitido] ${place.displayName?.text} (Ya está en el CRM)`);
                     continue;
                 }
 
@@ -126,7 +129,7 @@ async function fetchPlaces() {
                 
                 if (dataBlacklist && dataBlacklist.length > 0) {
                     omitidos++;
-                    console.log(`   ⛔ [Blacklist] ${place.displayName?.text} (Fue eliminado permanentemente antes)`);
+                    log(`   ⛔ [Blacklist] ${place.displayName?.text} (Fue eliminado permanentemente antes)`);
                     continue;
                 }
 
@@ -168,11 +171,11 @@ async function fetchPlaces() {
                         if (Array.isArray(data) && data.length > 0) {
                             if (!data[0].exists) {
                                 hasWA = false;
-                                console.log(`   📴 [Sin WhatsApp] "${place.displayName?.text}" (${cleanPhone}) -> DESCARTADO`);
+                                log(`   📴 [Sin WhatsApp] "${place.displayName?.text}" (${cleanPhone}) -> DESCARTADO`);
                             }
                         }
                     } catch (err) {
-                        console.log(`   ⚠️ No se pudo validar WA para ${cleanPhone} (Manteniendo por precaución)`);
+                        log(`   ⚠️ No se pudo validar WA para ${cleanPhone} (Manteniendo por precaución)`);
                     }
                 }
 
@@ -228,17 +231,17 @@ async function fetchPlaces() {
                         
                         if (extractedText.length > 0) {
                             info_rrss_text = extractedText.join('\n\n');
-                            console.log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev!`);
+                            log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev!`);
                         }
                     } catch (e) {
-                        console.log(`     ⚠️ API Serper inaccesible (${e.message}). Usando rastreo directo...`);
+                        log(`     ⚠️ API Serper inaccesible (${e.message}). Usando rastreo directo...`);
                     }
                 }
 
                 // 2. RASTREO DIRECTO DEL SITIO WEB (Fallback Maestro)
                 if (lead.sitioweb && (!lead.url_instagram || !lead.url_facebook) && !lead.sitioweb.includes('facebook.com') && !lead.sitioweb.includes('instagram.com')) {
                     try {
-                        console.log(`   🕸️  Rastreando sitio web oficial: ${lead.sitioweb}...`);
+                        log(`   🕸️  Rastreando sitio web oficial: ${lead.sitioweb}...`);
                         const webRes = await axios.get(lead.sitioweb, { 
                             timeout: 8000, 
                             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } 
@@ -250,18 +253,18 @@ async function fetchPlaces() {
                             const igMatch = html.match(/href=["'](https?:\/\/(www\.)?instagram\.com\/[a-z0-9_\-\.]+)\/?["']/);
                             if (igMatch) {
                                 lead.url_instagram = igMatch[1];
-                                console.log(`     📸 ¡Instagram hallado en el sitio web!`);
+                                log(`     📸 ¡Instagram hallado en el sitio web!`);
                             }
                         }
                         if (!lead.url_facebook) {
                             const fbMatch = html.match(/href=["'](https?:\/\/(www\.)?(facebook\.com|fb\.com)\/[a-z0-9_\-\.]+)\/?["']/);
                             if (fbMatch) {
                                 lead.url_facebook = fbMatch[1];
-                                console.log(`     💙 ¡Facebook hallado en el sitio web!`);
+                                log(`     💙 ¡Facebook hallado en el sitio web!`);
                             }
                         }
                     } catch (err) {
-                        console.log(`     🔸 No se pudo acceder al sitio web para rastreo profundo.`);
+                        log(`     🔸 No se pudo acceder al sitio web para rastreo profundo.`);
                     }
                 }
 
@@ -269,23 +272,23 @@ async function fetchPlaces() {
 
                 const { error: insErr } = await supabase.from('leads_salones').insert([lead]);
                 if (insErr) {
-                    console.error(`   ❌ [Error DB] ${lead.nombre_salon}:`, insErr.message);
+                    log(`   ❌ [Error DB] ${lead.nombre_salon}: ${insErr.message}`);
                 } else {
                     insertados++;
-                    console.log(`   ✅ [LEAD CAPTURADO] ${insertados}/${limit} -> ${lead.nombre_salon}`);
+                    log(`   ✅ [LEAD CAPTURADO] ${insertados}/${limit} -> ${lead.nombre_salon}`);
                 }
             } // Fin places
         } catch (error) {
-            console.error(`❌ Error consultando Google Maps:`, error.response?.data || error.message);
+            log(`❌ Error consultando Google Maps: ${error.response?.data || error.message}`);
         }
-        await delay(1200);
+        await new Promise(resolve => setTimeout(resolve, 1200));
     } // Fin consultas
 
-    console.log(`\n======================================================`);
-    console.log(`🎉 RESUMEN FINAL OJO DE ÁGUILA:`);
-    console.log(`   🔸 Leads Nuevos Perfectos Guardados: ${insertados}`);
-    console.log(`   🔸 Leads Repetidos (Omitidos): ${omitidos}`);
-    console.log(`======================================================\n`);
+    log(`\n======================================================`);
+    log(`🎉 RESUMEN FINAL OJO DE ÁGUILA:`);
+    log(`   🔸 Leads Nuevos Perfectos Guardados: ${insertados}`);
+    log(`   🔸 Leads Repetidos (Omitidos): ${omitidos}`);
+    log(`======================================================\n`);
 
     // Guardar marca visual de que esta zona fue operada
     if (insertados > 0 || omitidos > 0) {
@@ -296,6 +299,20 @@ async function fetchPlaces() {
             busqueda: `Limit:${limit} | KW: ${ubicacion}`
         }]);
     }
+
+    return { success: true, insertados, omitidos, logs };
 }
 
-fetchPlaces();
+// Soporte para ejecución directa desde Node (usando import dinámico si es necesario para ESM)
+if (process.argv[1] && process.argv[1].endsWith('scraper.js')) {
+    runScraper({
+        ubicacion: process.argv[2],
+        palabrasClavesRaw: process.argv[3],
+        lat: parseFloat(process.argv[4]),
+        lng: parseFloat(process.argv[5]),
+        radius: parseInt(process.argv[6]),
+        limit: parseInt(process.argv[7]),
+        pureKeywordsRaw: process.argv[8]
+    }).then(console.log).catch(console.error);
+}
+

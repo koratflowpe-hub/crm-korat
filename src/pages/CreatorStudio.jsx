@@ -269,8 +269,7 @@ export default function CreatorStudio() {
                 {COLUMN_ORDER.map(col => (
                   <KanbanColumn 
                     key={col} status={col} scripts={getScriptsByStatus(col)} 
-                    onAddClick={() => openScriptModal(col)} 
-                    onScriptClick={(s) => navigate(`/studio/edit/${s.id}`)}
+                    onAddIdea={() => openScriptModal(col)} 
                   />
                 ))}
               </div>

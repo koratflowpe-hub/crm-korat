@@ -55,7 +55,7 @@ export default function CRM() {
     scraperLogs,
     iniciarScraper,
     detenerScraper
-  } = useScraper(import.meta.env.VITE_SCRAPER_URL || 'http://localhost:3001');
+  } = useScraper();
 
   // Persistencia
   useEffect(() => {

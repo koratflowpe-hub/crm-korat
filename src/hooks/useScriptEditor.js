@@ -79,7 +79,7 @@ export function useScriptEditor(scriptId) {
 
       // Peticiones en paralelo para mayor velocidad
       const [{ data: pillarsData }, { data: scriptData, error: scriptError }] = await Promise.all([
-        supabase.from('strategy_pillars').select('id, name, description, objective, keywords').order('created_at', { ascending: true }),
+        supabase.from('pillars').select('id, name, description, objective, keywords').order('created_at', { ascending: true }),
         supabase.from('scripts').select('*').eq('id', scriptId).single(),
       ]);
 
