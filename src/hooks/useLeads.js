@@ -81,5 +81,6 @@ export const useLeads = (testMode = true) => {
     updateEstado: (id, estado) => updateLeadMutation.mutate({ id, updates: { estado_contacto: estado } }),
     updateNotas: (id, notas) => updateLeadMutation.mutate({ id, updates: { notas } }),
     updateMensajeApertura: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_apertura: texto } }),
+    refetchLeads: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
   };
 };

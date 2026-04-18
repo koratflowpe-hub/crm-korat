@@ -21,17 +21,17 @@ function normalizeStr(str) {
 }
 
 export async function runScraper({ 
-    ubicacion = "Huaral", 
-    palabrasClavesRaw = "salon de belleza, spa", 
+    ubicacion = "", 
+    palabrasClavesRaw = "salon de belleza, spa, barberia", 
     lat = -11.495, 
     lng = -77.208, 
     radius = 5000, 
     limit = 15, 
-    pureKeywordsRaw = "salon,belleza,uñas,pestañas,cejas,cabello,alisado,nails,lash,brows,pedicura,manicura,extensiones,planchado,microblading,spa" 
+    pureKeywordsRaw = "salon,belleza,uñas,pestañas,cejas,cabello,alisado,nails,lash,brows,pedicura,manicura,extensiones,planchado,microblading,spa,barberia" 
 }) {
     const strictKeywords = pureKeywordsRaw.split(',').map(t => normalizeStr(t.trim())).filter(t => t.length > 0);
     const keywords = palabrasClavesRaw.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    const SEARCH_QUERIES = keywords.map(kw => `${kw} en ${ubicacion}`);
+    const SEARCH_QUERIES = keywords.map(kw => ubicacion ? `${kw} en ${ubicacion}` : kw);
 
     let logs = [];
     const log = (msg) => {

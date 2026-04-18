@@ -5,7 +5,7 @@ export const useScraper = () => {
   const [serverOnline, setServerOnline] = useState(true); // Netlify siempre está "online"
   const [scraperLogs, setScraperLogs] = useState([]);
 
-  const iniciarScraper = async (params) => {
+  const iniciarScraper = async (params, onFinish) => {
     setScraping(true);
     setScraperLogs(["Iniciando extracción en la nube de Netlify..."]);
     
@@ -20,6 +20,7 @@ export const useScraper = () => {
       
       if (res.ok) {
         setScraperLogs(prev => [...prev, ...data.logs, `¡Éxito! Leads insertados: ${data.insertados}`]);
+        if (onFinish) onFinish();
       } else {
         setScraperLogs(prev => [...prev, `Error: ${data.error || 'Fallo en la extracción'}`]);
       }

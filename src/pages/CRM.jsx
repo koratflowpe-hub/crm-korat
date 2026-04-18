@@ -46,7 +46,8 @@ export default function CRM() {
     updateMensajeApertura, 
     deleteLead, 
     createLead,
-    updateLead 
+    updateLead,
+    refetchLeads
   } = useLeads(testMode);
 
   const {
@@ -54,7 +55,8 @@ export default function CRM() {
     serverOnline,
     scraperLogs,
     iniciarScraper,
-    detenerScraper
+    detenerScraper,
+    setScraperLogs
   } = useScraper();
 
   // Persistencia
@@ -156,8 +158,9 @@ export default function CRM() {
           limit={limit} setLimit={setLimit}
           pureKeywords={pureKeywords} setPureKeywords={setPureKeywords}
           scraping={scraping} scraperLogs={scraperLogs}
+          setScraperLogs={setScraperLogs}
           serverOnline={serverOnline}
-          iniciarScraper={() => iniciarScraper({ lat, lng, radius, limit, pureKeywords, testMode })}
+          iniciarScraper={() => iniciarScraper({ lat, lng, radius, limit, pureKeywords, testMode }, refetchLeads)}
           detenerScraper={detenerScraper}
         />
 

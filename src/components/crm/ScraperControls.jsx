@@ -18,7 +18,7 @@ const ScraperControls = ({
   zonas, radius, setRadius,
   limit, setLimit,
   pureKeywords, setPureKeywords,
-  scraping, scraperLogs,
+  scraping, scraperLogs, setScraperLogs,
   serverOnline, iniciarScraper, detenerScraper
 }) => {
   return (
@@ -84,8 +84,17 @@ const ScraperControls = ({
                     />
                 </div>
 
-                {scraping && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 font-mono text-[10px] h-32 overflow-y-auto space-y-1.5 scroll-smooth shadow-inner relative">
+                {(scraping || scraperLogs.length > 0) && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 font-mono text-[10px] h-32 overflow-y-auto space-y-1.5 scroll-smooth shadow-inner relative group">
+                    {!scraping && scraperLogs.length > 0 && (
+                      <button 
+                        onClick={() => setScraperLogs([])}
+                        className="absolute top-2 right-2 p-1.5 bg-slate-800 text-slate-400 hover:text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        title="Limpiar Consola"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                     {scraperLogs.map((log, i) => (
                       <div key={i} className="text-slate-300">
                         <span className="text-slate-500 mr-2">[{new Date().toLocaleTimeString()}]</span>
