@@ -85,7 +85,7 @@ const ScraperControls = ({
                 </div>
 
                 {(scraping || scraperLogs.length > 0) && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 font-mono text-[10px] h-32 overflow-y-auto space-y-1.5 scroll-smooth shadow-inner relative group">
+                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 font-mono text-[10px] h-32 overflow-y-auto overflow-x-hidden space-y-1.5 scroll-smooth shadow-inner relative group break-all">
                     {!scraping && scraperLogs.length > 0 && (
                       <button 
                         onClick={() => setScraperLogs([])}
@@ -96,8 +96,8 @@ const ScraperControls = ({
                       </button>
                     )}
                     {scraperLogs.map((log, i) => (
-                      <div key={i} className="text-slate-300">
-                        <span className="text-slate-500 mr-2">[{new Date().toLocaleTimeString()}]</span>
+                      <div key={i} className="text-slate-300 leading-relaxed">
+                        <span className="text-slate-500 mr-2 shrink-0">[{new Date().toLocaleTimeString()}]</span>
                         {log}
                       </div>
                     ))}

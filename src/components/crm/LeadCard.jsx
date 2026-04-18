@@ -143,10 +143,10 @@ const LeadCard = ({
                     )}
                 </div>
 
-                <div className="flex flex-col gap-4 text-[13px] font-bold text-muted-foreground/80">
-                    <div className="flex items-start">
+                <div className="flex flex-col gap-4 text-[13px] font-bold text-muted-foreground/80 overflow-hidden">
+                    <div className="flex items-start overflow-hidden">
                         <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5 mr-4 opacity-70" />
-                        <span className="line-clamp-1 leading-none tracking-tight">{lead.direccion || 'Ubicación no precisada'}</span>
+                        <span className="line-clamp-1 leading-none tracking-tight break-words">{lead.direccion || 'Ubicación no precisada'}</span>
                     </div>
                     <div className="flex items-center">
                         <div className="w-4 h-4 flex items-center justify-center mr-4">
