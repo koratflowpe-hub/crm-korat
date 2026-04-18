@@ -61,12 +61,21 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase.from('scripts').delete().eq('id', scriptId);
-    if (!error) {
-      if (onDeleteComplete) onDeleteComplete(scriptId);
-      if (onClose) onClose();
+    try {
+      const { error } = await supabase.from('scripts').delete().eq('id', scriptId);
+      if (error) {
+        console.error("Error al eliminar guión:", error);
+        alert("No se pudo eliminar el guión: " + error.message);
+      } else {
+        if (onDeleteComplete) onDeleteComplete(scriptId);
+        if (onClose) onClose();
+      }
+    } catch (err) {
+      console.error("Excepción al eliminar:", err);
+      alert("Error inesperado al intentar eliminar.");
+    } finally {
+      setShowDeleteConfirm(false);
     }
-    setShowDeleteConfirm(false);
   };
 
   // Mostrar el loader premium mientras se cargan los datos iniciales
@@ -218,16 +227,15 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
         />
       )}
 
-      {showDeleteConfirm && (
-        <ConfirmModal 
-          title="¿Destruir Guión?"
-          message="Esta acción borrará permanentemente el guión y todo su material relacionado."
-          confirmLabel="¡Sí, borrar!"
-          onConfirm={handleDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
-          destructive
-        />
-      )}
+      <ConfirmModal 
+        isOpen={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="¿Eliminar Guión?"
+        message="Esta acción no se puede deshacer. Todos los bloques narrativos también se eliminarán."
+        confirmText="¡Sí, eliminar!"
+        type="danger"
+      />
     </div>
   );
 }

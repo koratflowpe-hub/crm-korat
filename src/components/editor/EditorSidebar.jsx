@@ -38,12 +38,12 @@ export default function EditorSidebar({ activeTab, setActiveTab, getTabStatus, o
         );
       })}
 
-      <div className="hidden lg:block pt-8 mt-auto">
+      <div className="pt-4 lg:pt-8 mt-auto px-4 lg:px-0">
         <button
           onClick={onDeleteScript}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/5 transition-all"
+          className="w-full h-12 flex items-center justify-center lg:justify-start gap-3 px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10 bg-destructive/5 lg:bg-transparent transition-all border border-destructive/10 lg:border-none"
         >
-          <Trash2 size={16} /> Eliminar Guión
+          <Trash2 size={16} /> <span className="lg:inline">Eliminar Guión</span>
         </button>
       </div>
     </nav>
