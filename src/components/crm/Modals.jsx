@@ -85,9 +85,15 @@ export const EditLeadModal = ({ isOpen, onClose, editingLead, setEditingLead, ha
               <input type="number" min="0" max="100" className="w-32 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-base font-bold text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" value={editingLead.score_interes || ''} onChange={e => setEditingLead({...editingLead, score_interes: Number(e.target.value)})} />
           </div>
 
-          <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Sugerencia IA / Análisis</label>
-              <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none resize-none" value={editingLead.sugerencia_respuesta_ia || ''} onChange={e => setEditingLead({...editingLead, sugerencia_respuesta_ia: e.target.value})} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Diagnóstico (Puntos de Dolor)</label>
+                  <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all resize-none" value={editingLead.dolor_detectado || ''} onChange={e => setEditingLead({...editingLead, dolor_detectado: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Propuesta de Valor (Gancho)</label>
+                  <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all resize-none" value={editingLead.gancho_venta || ''} onChange={e => setEditingLead({...editingLead, gancho_venta: e.target.value})} />
+              </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6">

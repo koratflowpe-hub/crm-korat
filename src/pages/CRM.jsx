@@ -44,6 +44,7 @@ export default function CRM() {
     updateEstado, 
     updateNotas, 
     updateMensajeApertura, 
+    updateMensajeActivador,
     deleteLead, 
     createLead,
     updateLead,
@@ -77,11 +78,21 @@ export default function CRM() {
     };
     fetchZonas();
     
-    // Suscripción a cambios
-    const subZonas = supabase.channel('public:zonas_prospectadas').on('postgres_changes', { event: '*', schema: 'public', table: 'zonas_prospectadas' }, () => { fetchZonas(); }).subscribe();
+    // Nombres únicos para evitar conflictos de canales entre re-renders
+    const channelId = Date.now();
+    const subZonas = supabase
+      .channel(`zonas-${channelId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'zonas_prospectadas' }, fetchZonas)
+      .subscribe();
     
-    // Suscripción a cambios en leads (Actualización en tiempo real de la IA)
-    const subLeads = supabase.channel('public:leads_salones').on('postgres_changes', { event: '*', schema: 'public', table: 'leads_salones' }, () => { refetchLeads(); }).subscribe();
+    // Este canal es CRÍTICO: la IA (n8n) actualiza el estado del lead en la DB.
+    // Con refetchLeads estable (useCallback), este canal solo se crea UNA VEZ.
+    const subLeads = supabase
+      .channel(`leads-${channelId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_salones' }, () => {
+        refetchLeads();
+      })
+      .subscribe();
 
     return () => {
       supabase.removeChannel(subZonas);
@@ -121,22 +132,35 @@ export default function CRM() {
                   </h1>
                 </div>
                 
-                <div className="hidden md:flex items-center gap-6">
-                  <div className="h-4 w-px bg-slate-200" />
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
+                  <div className="hidden sm:block h-4 w-px bg-slate-200" />
+                  
+                  {/* Status Group */}
+                  <div className="flex items-center gap-4 lg:gap-8">
+                     {/* Server Status */}
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Server</span>
-                        <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Server</span>
+                        <div className="flex items-center gap-1.5">
                            <div className={`w-2 h-2 rounded-full ${serverOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                           <span className="text-[10px] font-bold text-slate-900 uppercase">{serverOnline ? 'Online' : 'Offline'}</span>
+                           <span className="text-[9px] font-extrabold text-slate-600 uppercase tracking-tight">{serverOnline ? 'Online' : 'Offline'}</span>
                         </div>
                      </div>
-                     <div className="h-8 w-px bg-slate-100" />
+
+                     <div className="h-8 w-px bg-slate-100 hidden sm:block" />
+
+                     {/* Test Mode Toggle */}
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Security</span>
-                        <button onClick={() => setTestMode(!testMode)} className="flex items-center gap-2 mt-1 group">
-                           <span className={`text-[10px] font-bold uppercase transition-colors ${testMode ? 'text-amber-500' : 'text-primary'}`}>
-                              {testMode ? 'Sandbox (Safe)' : 'Production (Live)'}
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Modo de Prueba</span>
+                        <button 
+                          onClick={() => setTestMode(!testMode)} 
+                          className="flex items-center gap-2 group transition-all"
+                          title={testMode ? "Sandbox activado: Las eliminaciones NO son permanentes" : "Modo Producción: Las eliminaciones bloquean leads permanentemente"}
+                        >
+                           <div className={`relative w-9 h-5 rounded-full transition-all duration-300 ${testMode ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-slate-200'}`}>
+                              <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform duration-300 shadow-sm ${testMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                           </div>
+                           <span className={`text-[9px] font-extrabold uppercase transition-colors hidden sm:block ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
+                              {testMode ? 'Sandbox' : 'Live'}
                            </span>
                         </button>
                      </div>
@@ -178,6 +202,7 @@ export default function CRM() {
           updateEstado={updateEstado}
           updateNotas={updateNotas}
           updateMensajeApertura={updateMensajeApertura}
+          updateMensajeActivador={updateMensajeActivador}
           deleteLead={deleteLead}
           setEditingLead={setEditingLead}
           setIsEditModalOpen={setIsEditModalOpen}

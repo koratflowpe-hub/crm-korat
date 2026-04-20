@@ -12,6 +12,7 @@ import StudioLoader from './StudioLoader';
 import Teleprompter from '../Teleprompter';
 import ConfirmModal from '../ConfirmModal';
 import { supabase } from '../../lib/supabase';
+import { STATUS_CONFIG, COLUMN_ORDER } from '../../utils/studioHelpers';
 
 export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, onDeleteComplete }) {
   const {
@@ -52,11 +53,11 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
   const getTabStatus = (tabId) => {
     const s = form.status;
     const mapping = {
-      guion: ['idea', 'drafting', 'structuring', 'refined', 'ready', 'recorded', 'published'],
-      marketing: ['idea', 'drafting', 'structuring', 'refined', 'ready', 'recorded', 'published'],
+      guion: COLUMN_ORDER,
+      marketing: COLUMN_ORDER,
       produccion: ['ready', 'recorded', 'published'],
-      distribucion: ['refined', 'ready', 'recorded', 'published'],
-      references: ['idea', 'drafting', 'structuring', 'refined', 'ready', 'recorded', 'published']
+      distribucion: ['ready', 'recorded', 'published'],
+      references: COLUMN_ORDER
     };
     return mapping[tabId]?.includes(s) || false;
   };
@@ -128,13 +129,11 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
                       onChange={e => setForm({...form, status: e.target.value})}
                       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm font-bold text-primary focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
                     >
-                      <option value="idea">Fase Idea</option>
-                      <option value="drafting">Borrador</option>
-                      <option value="structuring">Ingeniería</option>
-                      <option value="refined">Refinado IA</option>
-                      <option value="ready">Producción</option>
-                      <option value="recorded">Grabado</option>
-                      <option value="published">Publicado</option>
+                      {COLUMN_ORDER.map(statusKey => (
+                        <option key={statusKey} value={statusKey}>
+                          {STATUS_CONFIG[statusKey]?.label || statusKey}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

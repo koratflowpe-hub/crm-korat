@@ -1,7 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Layers, Zap, Check, Sparkles, Trash2, Plus, RotateCcw } from 'lucide-react';
 import ConfirmModal from '../ConfirmModal';
+
+const BLOCK_LABELS = {
+  hook:        'Gancho',
+  and:         'Contexto',
+  but:         'Conflicto',
+  therefore:   'Resolución',
+  cta:         'Llamado a la Acción',
+  problem:     'Problema',
+  agitation:   'Agitación',
+  solution:    'Solución',
+  development: 'Desarrollo',
+  value:       'Valor',
+};
+
+const COLLAPSED_HEIGHT = 100; // px cuando el bloque no está activo
+
+/**
+ * Textarea con altura dinámica.
+ * - Definido FUERA del componente padre para evitar que React lo destruya en cada render.
+ * - Usa manipulación directa del DOM (sin useState/useEffect) para que NUNCA pierda el foco.
+ */
+const BlockTextarea = ({ value, onChange, onSave, placeholder }) => {
+  const ref = useRef(null);
+
+  // Establecer altura inicial al montar (sin foco → colapsado)
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = `${COLLAPSED_HEIGHT}px`;
+    }
+  }, []);
+
+  // Si el contenido cambia desde afuera (ej. AI llenar el bloque) y tiene foco, ajustar
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || document.activeElement !== el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  const expand = (el) => {
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  const collapse = (el) => {
+    el.style.height = `${COLLAPSED_HEIGHT}px`;
+  };
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => {
+        onChange(e.target.value);
+        expand(e.target);
+      }}
+      onFocus={(e) => expand(e.target)}
+      onBlur={(e) => {
+        collapse(e.target);
+        onSave();
+      }}
+      className="w-full bg-transparent border-none p-0 text-base font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-300 outline-none focus:ring-0 resize-none leading-relaxed overflow-hidden"
+      style={{ transition: 'height 0.25s ease' }}
+    />
+  );
+};
 
 export default function ScriptArchitect({ 
   blocks, 
@@ -66,7 +133,6 @@ export default function ScriptArchitect({
           </div>
           <button 
             onClick={() => setShowResetConfirm(true)}
-
             className="px-4 py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all text-[10px] font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-900 shadow-sm"
             title="Elegir otra estructura"
           >
@@ -86,7 +152,7 @@ export default function ScriptArchitect({
           <motion.div 
             layoutId={block.id}
             key={block.id} 
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl hover:border-primary/30 transition-all shadow-sm group/block relative"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl hover:border-primary/30 transition-[border-color] duration-200 shadow-sm group/block relative"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -94,10 +160,7 @@ export default function ScriptArchitect({
                   0{idx + 1}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-lg">
-                  {block.block_type === 'and' ? 'Contexto' : 
-                   block.block_type === 'but' ? 'Conflicto' : 
-                   block.block_type === 'therefore' ? 'Resolución' : 
-                   block.block_type}
+                  {BLOCK_LABELS[block.block_type] || block.block_type}
                 </span>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover/block:opacity-100 transition-all">
@@ -109,12 +172,11 @@ export default function ScriptArchitect({
                 </button>
               </div>
             </div>
-            <textarea 
+            <BlockTextarea 
               value={block.text_content}
-              onChange={(e) => onBlockChange(block.id, e.target.value)}
-              onBlur={() => onSaveBlocks()}
+              onChange={(val) => onBlockChange(block.id, val)}
+              onSave={() => onSaveBlocks()}
               placeholder="Escribe el contenido..."
-              className="w-full bg-transparent border-none p-0 text-base font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-300 outline-none focus:ring-0 resize-none min-h-[100px] leading-relaxed"
             />
           </motion.div>
         ))}

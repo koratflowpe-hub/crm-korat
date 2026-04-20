@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 
@@ -16,9 +17,14 @@ export const useLeads = (testMode = true) => {
       if (error) throw error;
       return data || [];
     },
-    // Sincronización en tiempo real básica (se puede mejorar con suscripciones específicas)
     refetchOnWindowFocus: true,
+    staleTime: 0, // Siempre considerar datos como potencialmente stale
+    // Polling de seguridad: si el canal Realtime pierde un evento de la IA (n8n),
+    // esta red de respaldo re-consultará automáticamente cada 8 segundos.
+    refetchInterval: 8000,
+    refetchIntervalInBackground: false, // Solo cuando la pestaña está activa
   });
+
 
   // Mutaciones
   const updateLeadMutation = useMutation({
@@ -81,6 +87,8 @@ export const useLeads = (testMode = true) => {
     updateEstado: (id, estado) => updateLeadMutation.mutate({ id, updates: { estado_contacto: estado } }),
     updateNotas: (id, notas) => updateLeadMutation.mutate({ id, updates: { notas } }),
     updateMensajeApertura: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_apertura: texto } }),
-    refetchLeads: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+    updateMensajeActivador: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_activador: texto } }),
+    // useCallback garantiza referencia estable: el useEffect en CRM.jsx no recreará el canal Supabase en cada render
+    refetchLeads: useCallback(() => queryClient.invalidateQueries({ queryKey: ['leads'] }), [queryClient]),
   };
 };
