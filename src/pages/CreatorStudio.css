@@ -721,13 +721,14 @@
 /* ── Board Viewport (Horizontal Kanban) ── */
 .cs-board {
   flex: 1;
+  min-height: 0; /* CRITICAL: permite que flex contraiga el contenedor a su altura asignada */
   /* El scroll horizontal ocurre exclusivamente aquí en todos los dispositivos */
-  overflow-x: auto; 
+  overflow-x: auto;
   overflow-y: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-  
+
   /* Scroll Snap para mobile */
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
@@ -739,11 +740,13 @@
 
 .cs-board-scroll {
   flex: 1;
+  min-height: 0; /* CRITICAL: necesario para que flex active el height constraint */
   display: flex;
+  height: 100%; /* CRITICAL: las columnas usan height:100% - necesitan referencia */
   width: max-content; /* Crítico: permite que el contenido se desborde horizontalmente */
   min-width: 100%;
   /* 
-     VITAL: Este contenedor DEBE ser visible. Si es auto/scroll/hidden, 
+     VITAL: Este contenedor DEBE ser visible. Si es auto/scroll/hidden,
      @hello-pangea/dnd considerará que hay scroll anidado y el DnD fallará.
   */
   overflow: visible !important;
@@ -775,14 +778,25 @@
   .cs-board {
     /* En desktop quitamos el snap para scroll libre */
     scroll-snap-type: none;
+    /* cs-board permanece flex-direction:column — es el contenedor del board-scroll.
+       El scroll horizontal ocurre aquí (overflow-x:auto). */
   }
   .cs-column {
     width: 300px;
     min-width: 260px;
     flex-shrink: 0;
     touch-action: auto;
-    overflow: visible !important;
+    /*
+      overflow: hidden es INTENCIONAL.
+      Durante el drag, @hello-pangea/dnd mueve el ítem arrastrado a
+      position:fixed, por lo que NO queda recortado por este overflow:hidden.
+      Tener overflow:hidden es necesario para que .cs-column-body (el scroll
+      container del Droppable) tenga una altura máxima y active su scroll interno.
+    */
+    overflow: hidden;
     height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -835,10 +849,15 @@
   cs-column-body es el ÚNICO scroll container vertical por columna.
   Al ser el ref del Droppable, @hello-pangea/dnd lo reconoce como su
   único scroll parent y no lanza el warning de "nested scroll container".
-  Esto requiere que NINGÚN ancestro tenga overflow-y diferente de visible.
+  En desktop, el padre (.cs-column) tiene overflow:hidden, lo que acota
+  la altura. Durante el drag, @hello-pangea/dnd aplica position:fixed al
+  ítem arrastrado, por lo que no queda recortado por ese overflow.
 */
 .cs-column-body {
   flex: 1;
+  /* min-height:0 es CRÍTICO: permite que flex contraiga la altura al
+     espacio disponible en la columna, activando el scroll interno. */
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
@@ -849,8 +868,6 @@
   scrollbar-color: #E2E8F0 transparent;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
-  /* Altura minima para que el droppable sea visible aunque esté vacío */
-  min-height: 80px;
 }
 .dark .cs-column-body {
   scrollbar-color: #1E293B transparent;

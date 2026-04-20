@@ -14,10 +14,10 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="flex bg-background font-sans selection:bg-primary/30 overflow-hidden min-h-screen">
+    <div className="flex bg-background font-sans selection:bg-primary/30 h-screen overflow-hidden">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
       <div 
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ease-in-out ${
+        className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-500 ease-in-out ${
           isSidebarHidden 
             ? 'ml-0' 
             : (isMobile ? 'ml-0' : (collapsed ? 'ml-20' : 'ml-64'))
