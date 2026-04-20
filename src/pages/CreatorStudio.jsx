@@ -41,6 +41,8 @@ export default function CreatorStudio() {
   const [viewMode, setViewMode]   = useState('production'); // 'production' | 'strategy' | 'library'
   const [searchQuery, setSearchQuery] = useState('');
   const [pillarSearch, setPillarSearch] = useState('');
+  // dndReady: true cuando el ciclo de StrictMode ya pasó y @hello-pangea/dnd puede registrar contextos
+  const [dndReady, setDndReady] = useState(false);
   
   // Modals Visibility
   const [showPillarModal, setShowPillarModal]   = useState(false);
@@ -70,6 +72,13 @@ export default function CreatorStudio() {
     updatePillarLocally
   } = useStudioData();
 
+  // Habilitar DnD una sola vez tras el primer montaje del componente.
+  // Se hace aquí (padre) para que no se reinicie en cada re-render de las columnas.
+  useEffect(() => {
+    const id = setTimeout(() => setDndReady(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+
   // Sync scroll for mobile pagination
   useEffect(() => {
     const container = terminalScrollRef.current;
@@ -92,11 +101,59 @@ export default function CreatorStudio() {
     setEditingPillar(null);
   };
 
-  const onDragEnd = async ({ destination, source, draggableId }) => {
+  const onDragEnd = ({ destination, source, draggableId }) => {
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-    await updateScriptStatus(draggableId, destination.droppableId);
+
+    // Guardar snapshot del estado previo para poder revertir si Supabase falla
+    let prevScripts;
+
+    setScripts(prev => {
+      prevScripts = prev; // capturamos el estado actual antes de mutar
+
+      const scriptIndex = prev.findIndex(s => String(s.id) === String(draggableId));
+      if (scriptIndex === -1) return prev;
+      
+      const scriptToMove = { ...prev[scriptIndex], status: destination.droppableId, updated_at: new Date().toISOString() };
+      
+      const newScripts = [...prev];
+      newScripts.splice(scriptIndex, 1);
+      
+      // Usar la vista filtrada real del usuario para calcular el índice de inserción correcto
+      const uiDestScripts = newScripts.filter(s => 
+        s.status === destination.droppableId &&
+        s.brand_id === selectedBrand?.id && 
+        (s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+         (s.pillars?.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      
+      if (destination.index === 0) {
+        if (uiDestScripts.length > 0) {
+          const insertIndex = newScripts.findIndex(s => s.id === uiDestScripts[0].id);
+          newScripts.splice(insertIndex, 0, scriptToMove);
+        } else {
+          newScripts.push(scriptToMove);
+        }
+      } else if (destination.index >= uiDestScripts.length) {
+        newScripts.push(scriptToMove);
+      } else {
+        const insertIndex = newScripts.findIndex(s => s.id === uiDestScripts[destination.index].id);
+        newScripts.splice(insertIndex, 0, scriptToMove);
+      }
+      
+      return newScripts;
+    });
+
+    // Sync con Supabase — si falla, revertimos el estado local
+    updateScriptStatus(draggableId, destination.droppableId).then(({ error }) => {
+      if (error) {
+        console.error('[CreatorStudio] Revertiendo cambio local — error en Supabase:', error.message);
+        // Revertir al estado anterior para que el usuario vea la tarjeta en su posición original
+        if (prevScripts) setScripts(prevScripts);
+      }
+    });
   };
+
 
   const openScriptModal = (status = 'idea', pilarId = '') => {
     setScriptModalStatus(status);
@@ -250,10 +307,7 @@ export default function CreatorStudio() {
         )}
 
         {viewMode === 'production' && (
-          <motion.main 
-            key="production-board" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="cs-board"
-          >
+          <main className="cs-board">
             <div className="cs-phase-nav">
               <div className="cs-phase-nav-inner">
                 {COLUMN_ORDER.map(col => (
@@ -270,13 +324,15 @@ export default function CreatorStudio() {
                 {COLUMN_ORDER.map(col => (
                   <KanbanColumn 
                     key={col} status={col} scripts={getScriptsByStatus(col)} 
-                    onAddIdea={() => openScriptModal(col)} 
+                    onAddIdea={() => openScriptModal(col)}
+                    dndReady={dndReady}
                   />
                 ))}
               </div>
             </DragDropContext>
-          </motion.main>
+          </main>
         )}
+
 
         {viewMode === 'library' && (
           <motion.div 

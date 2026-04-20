@@ -718,27 +718,37 @@
 .dark .cs-dot-indicator--active { background: white; }
 
 /* ── Board Viewport (Horizontal Kanban) ── */
+/* ── Board Viewport (Horizontal Kanban) ── */
 .cs-board {
   flex: 1;
-  overflow: hidden;
+  /* El scroll horizontal ocurre exclusivamente aquí en todos los dispositivos */
+  overflow-x: auto; 
+  overflow-y: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-}
-.cs-board-scroll {
-  flex: 1;
-  display: flex;
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  
+  /* Scroll Snap para mobile */
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
   scrollbar-width: none;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
 }
-.cs-board-scroll::-webkit-scrollbar { display: none; }
+.cs-board::-webkit-scrollbar { display: none; }
+
+.cs-board-scroll {
+  flex: 1;
+  display: flex;
+  width: max-content; /* Crítico: permite que el contenido se desborde horizontalmente */
+  min-width: 100%;
+  /* 
+     VITAL: Este contenedor DEBE ser visible. Si es auto/scroll/hidden, 
+     @hello-pangea/dnd considerará que hay scroll anidado y el DnD fallará.
+  */
+  overflow: visible !important;
+}
+
 
 /* ── Kanban Column ── */
 .cs-column {
@@ -750,6 +760,8 @@
   border-right: 1px solid #F1F5F9;
   height: 100%;
   touch-action: pan-y;
+  /* Mobile: la columna misma tiene altura 100% del viewport */
+  overflow: hidden;
 }
 .dark .cs-column {
   border-right-color: rgba(30,41,59,0.5);
@@ -760,17 +772,20 @@
   }
 }
 @media (min-width: 1024px) {
-  .cs-board-scroll {
+  .cs-board {
+    /* En desktop quitamos el snap para scroll libre */
     scroll-snap-type: none;
-    touch-action: auto;
   }
   .cs-column {
     width: 300px;
     min-width: 260px;
     flex-shrink: 0;
     touch-action: auto;
+    overflow: visible !important;
+    height: 100%;
   }
 }
+
 @media (min-width: 1280px) {
   .cs-column { width: 320px; }
 }
@@ -816,6 +831,12 @@
   border-color: #1E293B;
 }
 
+/*
+  cs-column-body es el ÚNICO scroll container vertical por columna.
+  Al ser el ref del Droppable, @hello-pangea/dnd lo reconoce como su
+  único scroll parent y no lanza el warning de "nested scroll container".
+  Esto requiere que NINGÚN ancestro tenga overflow-y diferente de visible.
+*/
 .cs-column-body {
   flex: 1;
   overflow-y: auto;
@@ -828,6 +849,8 @@
   scrollbar-color: #E2E8F0 transparent;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
+  /* Altura minima para que el droppable sea visible aunque esté vacío */
+  min-height: 80px;
 }
 .dark .cs-column-body {
   scrollbar-color: #1E293B transparent;

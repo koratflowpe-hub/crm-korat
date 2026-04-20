@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+const VALID_STATUSES = ['idea', 'drafting', 'ready', 'recorded', 'published'];
+
 export function useStudioData() {
   const [brands, setBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -25,7 +27,7 @@ export function useStudioData() {
     setBrands(activeBrands);
 
     if (activeBrands.length > 0) {
-      setSelectedBrand(activeBrands[0]);
+      setSelectedBrand(prev => prev ? activeBrands.find(b => b.id === prev.id) || activeBrands[0] : activeBrands[0]);
     } else {
       const { data } = await supabase.from('brands').insert([{ name: 'Marca Personal', user_id: user.id }]).select().single();
       if (data) { 
@@ -34,8 +36,14 @@ export function useStudioData() {
       }
     }
 
+    // Normalizar scripts con status inválido para que no causen errores 400
+    const rawScripts = (sRes.data || []).map(s => ({
+      ...s,
+      status: VALID_STATUSES.includes(s.status) ? s.status : 'idea',
+    }));
+
     setPillars(pRes.data || []);
-    setScripts(sRes.data || []);
+    setScripts(rawScripts);
     setTags(tRes.data || []);
     setLoading(false);
   };
@@ -44,16 +52,26 @@ export function useStudioData() {
     fetchData();
   }, []);
 
+  /**
+   * Actualiza el status de un script en Supabase.
+   * Retorna { error } para que el llamador pueda revertir el estado
+   * optimista local si la operación falla.
+   */
   const updateScriptStatus = async (scriptId, newStatus) => {
-    // Update local state optimistically
-    setScripts(prev => prev.map(s => s.id === scriptId ? { ...s, status: newStatus } : s));
-    
-    // Update DB
+    if (!VALID_STATUSES.includes(newStatus)) {
+      console.error('[useStudioData] updateScriptStatus: status inválido:', newStatus);
+      return { error: new Error(`Status inválido: ${newStatus}`) };
+    }
+
     const { error } = await supabase
       .from('scripts')
       .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', scriptId);
-    
+
+    if (error) {
+      console.error('[useStudioData] updateScriptStatus error:', error.message, error);
+    }
+
     return { error };
   };
 

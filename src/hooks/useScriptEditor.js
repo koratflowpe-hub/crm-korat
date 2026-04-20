@@ -158,18 +158,6 @@ export function useScriptEditor(scriptId) {
     setIsSaving(false);
   }, [scriptId, form]);
 
-  // ── Auto-save ─────────────────────────────────────────────────────────────
-  // FIX: Solo dispara cuando los datos ya están cargados (`isDataLoaded.current`)
-  useEffect(() => {
-    if (!isDataLoaded.current || !scriptId) return;
-
-    const timer = setTimeout(() => {
-      handleSave(true); // isSilent = true: no muestra errores en UI
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [form, scriptId]); // handleSave NO incluida para evitar loop infinito
-
   // ── Blocks ────────────────────────────────────────────────────────────────
   const handleBlockChange = useCallback((id, content) => {
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, text_content: content } : b));
@@ -181,6 +169,23 @@ export function useScriptEditor(scriptId) {
       .map(b => supabase.from('script_blocks').update({ text_content: b.text_content }).eq('id', b.id));
     await Promise.all(updates);
   }, [blocks]);
+
+
+  // ── Auto-save ─────────────────────────────────────────────────────────────
+  // FIX: Solo dispara cuando los datos ya están cargados (`isDataLoaded.current`)
+  useEffect(() => {
+    if (!isDataLoaded.current || !scriptId) return;
+
+    const timer = setTimeout(() => {
+      handleSave(true); 
+      saveBlocks(blocks); // También guardamos los bloques
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [form, blocks, scriptId, handleSave, saveBlocks]); 
+
+
+
 
   const initTemplate = useCallback(async (type) => {
     if (!scriptId) return;
@@ -240,8 +245,63 @@ export function useScriptEditor(scriptId) {
       .filter(Boolean)
       .join('\n\n');
     setForm(f => ({ ...f, master_draft: combined }));
-    setWritingMode('libre');
+    // No cambiamos writingMode aquí para que el sync automático no se confunda
   }, [blocks]);
+
+  // ── Sync: Master Draft -> Blocks ──────────────────────────────────────────
+  const syncBlocksFromDraft = useCallback(async () => {
+    if (!form.master_draft.trim() || blocks.length === 0) return;
+
+    // Split por doble salto de línea (párrafos)
+    const paragraphs = form.master_draft
+      .split(/\n\s*\n/)
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    setBlocks(prev => {
+      const newBlocks = [...prev];
+      
+      // Actualizar bloques existentes con los párrafos disponibles
+      paragraphs.forEach((para, idx) => {
+        if (newBlocks[idx]) {
+          newBlocks[idx] = { ...newBlocks[idx], text_content: para };
+        } else {
+          // Si hay más párrafos que bloques, el sistema ignora o podríamos 
+          // crear bloques 'custom' aquí. Por ahora, los concatenamos al último.
+          const lastIdx = newBlocks.length - 1;
+          newBlocks[lastIdx] = { 
+            ...newBlocks[lastIdx], 
+            text_content: newBlocks[lastIdx].text_content + '\n\n' + para 
+          };
+        }
+      });
+
+      // Limpiar bloques sobrantes si hay menos párrafos que bloques
+      if (paragraphs.length < newBlocks.length) {
+        for (let i = paragraphs.length; i < newBlocks.length; i++) {
+          newBlocks[i] = { ...newBlocks[i], text_content: '' };
+        }
+      }
+
+      return newBlocks;
+    });
+  }, [form.master_draft, blocks.length]);
+
+  // ── Sincronización Automática Bidireccional ──────────────────────────────
+  // FIX: Solo sincronizamos desde el origen activo para evitar loops.
+  useEffect(() => {
+    if (!isDataLoaded.current) return;
+
+    const timer = setTimeout(() => {
+      if (writingMode === 'libre') {
+        syncBlocksFromDraft();
+      } else if (writingMode === 'arquitecto') {
+        compileDraft();
+      }
+    }, 800); // Debounce de 800ms para no saturar procesos
+
+    return () => clearTimeout(timer);
+  }, [form.master_draft, blocks, writingMode]);
 
   // ── AI Assist ─────────────────────────────────────────────────────────────
   const handleAIAssist = useCallback(async () => {

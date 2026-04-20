@@ -60,8 +60,13 @@ export default function ScriptArchitect({
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Flujo Narrativo Dinámico</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 rounded-lg border border-green-100 dark:border-green-900/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
+          </div>
           <button 
             onClick={() => setShowResetConfirm(true)}
+
             className="px-4 py-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all text-[10px] font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-900 shadow-sm"
             title="Elegir otra estructura"
           >
