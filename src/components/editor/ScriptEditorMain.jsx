@@ -149,6 +149,7 @@ export default function ScriptEditorMain({ scriptId, onClose, onSaveComplete, on
                   onOpenAI={(field, label) => setAiPromptTarget({ field, label })}
                   isZenMode={isZenMode}
                   setIsZenMode={setIsZenMode}
+                  onTeleprompter={() => setShowTeleprompter(true)}
                 />
               ) : (
                 <ScriptArchitect 

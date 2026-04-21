@@ -38,7 +38,7 @@ export default function EditorHeader({
       <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={onTeleprompter}
-          className="p-2 sm:px-5 sm:py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl flex items-center gap-2 hover:scale-105 transition-all text-[11px] font-bold uppercase"
+          className="hidden sm:flex p-2 sm:px-5 sm:py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl items-center gap-2 hover:scale-105 transition-all text-[11px] font-bold uppercase"
         >
           <Play size={14} fill="currentColor" /> <span className="hidden sm:inline">Grabación</span>
         </button>

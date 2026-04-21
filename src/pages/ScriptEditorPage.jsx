@@ -8,7 +8,10 @@ export default function ScriptEditorPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background">
+    <div
+      className="h-dvh w-full flex flex-col bg-background overflow-hidden"
+      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
+    >
       <ScriptEditorMain 
         scriptId={scriptId} 
         onClose={() => navigate('/creator-flow')}
