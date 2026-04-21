@@ -6,13 +6,28 @@ import CRM from './pages/CRM';
 import CreatorStudio from './pages/CreatorStudio';
 import ScriptEditorPage from './pages/ScriptEditorPage';
 import Layout from './components/Layout';
+import OfflineBanner from './components/common/OfflineBanner';
 import { Loader2 } from 'lucide-react';
 import { useThemeStore } from './store/themeStore';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const { theme } = useThemeStore();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,13 +68,16 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout><CRM /></Layout>} />
-        <Route path="/creator-flow" element={<Layout><CreatorStudio /></Layout>} />
-        <Route path="/studio/edit/:scriptId" element={<ScriptEditorPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <>
+      <OfflineBanner isOffline={isOffline} />
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout><CRM /></Layout>} />
+          <Route path="/creator-flow" element={<Layout><CreatorStudio /></Layout>} />
+          <Route path="/studio/edit/:scriptId" element={<ScriptEditorPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
