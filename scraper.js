@@ -284,7 +284,6 @@ export async function runScraper({
                                 log(`     💙 ¡Facebook hallado en el sitio web!`);
                             }
                         }
-                        }
 
                         // Extraer servicios también del sitio web real
                         const webServices = extractServices(html);
