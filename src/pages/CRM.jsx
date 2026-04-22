@@ -11,6 +11,7 @@ import KPIDashboard from '../components/crm/KPIDashboard';
 import ScraperControls from '../components/crm/ScraperControls';
 import LeadList from '../components/crm/LeadList';
 import { CreateLeadModal, EditLeadModal, DeleteLeadModal } from '../components/crm/Modals';
+import MessageLibraryModal from '../components/crm/MessageLibraryModal';
 
 // Utils
 import { formatWa } from '../utils/crmHelpers';
@@ -28,6 +29,7 @@ export default function CRM() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false); // Puede ser boolean o string (tab name)
   
   // Lead states para modales
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
@@ -45,6 +47,7 @@ export default function CRM() {
     updateNotas, 
     updateMensajeApertura, 
     updateMensajeActivador,
+    updateMensajeVideo,
     deleteLead, 
     createLead,
     updateLead,
@@ -168,12 +171,20 @@ export default function CRM() {
                 </div>
              </div>
              
-             <button 
-               onClick={() => setIsModalOpen(true)} 
-               className="flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-slate-200 active:scale-95"
-             >
-               <Plus size={16} /> <span>Nuevo Registro</span>
-             </button>
+             <div className="flex items-center gap-3">
+               <button 
+                 onClick={() => setIsLibraryModalOpen(true)} 
+                 className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
+               >
+                 <Database size={16} /> <span>Biblioteca de Mensajes</span>
+               </button>
+               <button 
+                 onClick={() => setIsModalOpen(true)} 
+                 className="flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-slate-200 active:scale-95"
+               >
+                 <Plus size={16} /> <span>Nuevo Registro</span>
+               </button>
+             </div>
           </div>
       </nav>
 
@@ -203,11 +214,13 @@ export default function CRM() {
           updateNotas={updateNotas}
           updateMensajeApertura={updateMensajeApertura}
           updateMensajeActivador={updateMensajeActivador}
+          updateMensajeVideo={updateMensajeVideo}
           deleteLead={deleteLead}
           setEditingLead={setEditingLead}
           setIsEditModalOpen={setIsEditModalOpen}
           setLeadToDelete={setLeadToDelete}
           setIsDeleteModalOpen={setIsDeleteModalOpen}
+          setIsLibraryModalOpen={setIsLibraryModalOpen}
           formatWa={formatWa}
         />
       </main>
@@ -234,6 +247,12 @@ export default function CRM() {
         onClose={() => { setIsDeleteModalOpen(false); setLeadToDelete(null); }}
         leadToDelete={leadToDelete}
         confirmDelete={() => { deleteLead(leadToDelete); setIsDeleteModalOpen(false); setLeadToDelete(null); }}
+      />
+
+      <MessageLibraryModal
+        isOpen={!!isLibraryModalOpen}
+        initialTab={typeof isLibraryModalOpen === 'string' ? isLibraryModalOpen : 'apertura'}
+        onClose={() => setIsLibraryModalOpen(false)}
       />
     </div>
   );

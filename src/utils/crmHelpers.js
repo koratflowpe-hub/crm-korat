@@ -7,6 +7,9 @@ export const ESTADOS = [
   'Enviar Activador',
   'Activador Enviado',
   'Respondió Activador',
+  'Enviar Video',
+  'Video Enviado',
+  'Respondió Video',
   'Reunión Agendada',
   'No Interesado',
   'Cliente Cerrado'
@@ -19,6 +22,9 @@ export const getStatusColor = (status) => {
         case 'Enviar Activador': return 'bg-violet-50 text-violet-700 border-violet-100';
         case 'Activador Enviado': return 'bg-blue-50 text-blue-700 border-blue-100';
         case 'Respondió Activador': return 'bg-teal-50 text-teal-700 border-teal-100';
+        case 'Enviar Video': return 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100';
+        case 'Video Enviado': return 'bg-pink-50 text-pink-700 border-pink-100';
+        case 'Respondió Video': return 'bg-rose-50 text-rose-700 border-rose-100';
         case 'Reunión Agendada': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
         case 'Cliente Cerrado': return 'bg-slate-900 text-white border-transparent';
         case 'Pendiente Análisis IA': return 'bg-amber-50 text-amber-700 border-amber-100';

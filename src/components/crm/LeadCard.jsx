@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageCircle, MapPin, Globe, Flame, Edit3, Send, 
-  Trash2, Phone, Activity, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap
+  Trash2, Phone, Activity, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from '../icons/SocialIcons';
 import { getStatusColor, getTagStyle, formatWa, ESTADOS } from '../../utils/crmHelpers';
+import { useTemplates } from '../../hooks/useTemplates';
 
 const LeadCard = ({ 
   lead, 
@@ -12,16 +13,36 @@ const LeadCard = ({
   updateNotas, 
   updateMensajeApertura, 
   updateMensajeActivador, 
+  updateMensajeVideo,
   setEditingLead, 
   setIsEditModalOpen, 
   setLeadToDelete, 
-  setIsDeleteModalOpen 
+  setIsDeleteModalOpen,
+  setIsLibraryModalOpen
 }) => {
+  const { templates } = useTemplates();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showAISection, setShowAISection] = useState(false);
+  const [activeTab, setActiveTab] = useState('apertura');
+  const [copiedTab, setCopiedTab] = useState(null);
   const menuRef = useRef(null);
   const actionsRef = useRef(null);
+
+  const handleCopy = (text, tabName) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedTab(tabName);
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const applyTemplate = (templateContent, updater) => {
+    if (!templateContent) return;
+    let content = templateContent;
+    content = content.replace(/{{nombre_salon}}/g, lead.nombre_salon || '[NOMBRE DEL NEGOCIO]');
+    content = content.replace(/{{direccion}}/g, lead.direccion || '[DIRECCIÓN]');
+    updater(lead.id, content);
+  };
 
   // Un solo handler para todos los menús flotantes
   useEffect(() => {
@@ -76,9 +97,17 @@ const LeadCard = ({
     if (['Respondió Apertura', 'Respondió Activador', 'Activador Enviado'].includes(s)) {
       return (
         <div className="flex-[4] flex row gap-2">
-          <button onClick={() => updateEstado(lead.id, 'Reunión Agendada')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-emerald-600 bg-emerald-50 border border-emerald-100 active:scale-95 transition-all">📅 Agendar</button>
+          <button onClick={() => updateEstado(lead.id, 'Enviar Video')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-rose-600 bg-rose-50 border border-rose-100 active:scale-95 transition-all">▶️ Video</button>
           <button onClick={() => updateEstado(lead.id, 'Enviar Activador')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-violet-600 bg-violet-50 border border-violet-100 active:scale-95 transition-all">🚀 Push</button>
-          <button onClick={() => updateEstado(lead.id, 'No Interesado')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-rose-600 bg-rose-50 border border-rose-100 active:scale-95 transition-all">Descartar</button>
+          <button onClick={() => updateEstado(lead.id, 'No Interesado')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-slate-600 bg-slate-50 border border-slate-100 active:scale-95 transition-all">Descartar</button>
+        </div>
+      );
+    }
+    if (['Enviar Video', 'Video Enviado', 'Respondió Video'].includes(s)) {
+      return (
+        <div className="flex-[4] flex row gap-2">
+          <button onClick={() => updateEstado(lead.id, 'Reunión Agendada')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-emerald-600 bg-emerald-50 border border-emerald-100 active:scale-95 transition-all">📅 Agendar</button>
+          <button onClick={() => updateEstado(lead.id, 'No Interesado')} className="flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider rounded-lg text-slate-600 bg-slate-50 border border-slate-100 active:scale-95 transition-all">Descartar</button>
         </div>
       );
     }
@@ -97,9 +126,27 @@ const LeadCard = ({
     return <div className="flex-[4] py-3 text-[10px] font-bold uppercase tracking-wider rounded-lg text-slate-400 bg-slate-50 border border-slate-100 text-center opacity-50 italic">Cargando...</div>;
   };
 
+  const getProgress = () => {
+    const s = lead.estado_contacto;
+    if (s === 'Cliente Cerrado') return 100;
+    if (s === 'Reunión Agendada') return 80;
+    if (['Enviar Video', 'Video Enviado', 'Respondió Video'].includes(s)) return 60;
+    if (['Enviar Activador', 'Activador Enviado', 'Respondió Activador'].includes(s)) return 40;
+    if (['Apertura Enviado', 'Respondió Apertura'].includes(s)) return 20;
+    if (s === 'No Interesado') return 100;
+    return 5;
+  };
+
+  const progressColor = lead.estado_contacto === 'No Interesado' ? 'bg-rose-500' : 'bg-emerald-500';
+
   return (
     <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300">
       
+      {/* Progress Bar */}
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100 rounded-t-2xl overflow-hidden">
+        <div className={`h-full ${progressColor} transition-all duration-500`} style={{ width: `${getProgress()}%` }} />
+      </div>
+
       {/* Menú "..." — reemplaza los botones flotantes separados para evitar clicks accidentales */}
       <div className="absolute top-4 right-4 z-10" ref={actionsRef}>
         <button
@@ -251,35 +298,161 @@ const LeadCard = ({
             
             {/* Scripts de Contacto (Agrupados en el acordeón) */}
             <div className="space-y-4">
-              {/* Mensaje de Apertura */}
-              {(lead.estado_contacto === 'Pendiente' || !!lead.mensaje_apertura) && (
-                <div className="space-y-2">
+              {/* Tab Selector */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <button 
+                  onClick={() => setActiveTab('apertura')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${activeTab === 'apertura' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  <Edit3 size={12} /> Apertura
+                </button>
+                <button 
+                  onClick={() => setActiveTab('seguimiento')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${activeTab === 'seguimiento' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  <Zap size={12} /> Seguir
+                </button>
+                <button 
+                  onClick={() => setActiveTab('video')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${activeTab === 'video' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  <Video size={12} /> Video
+                </button>
+              </div>
+
+              {/* Contenido del Tab Activo */}
+              {activeTab === 'apertura' && (
+                <div className="space-y-2 relative group/textarea animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Propuesta de Apertura</span>
-                    <Edit3 size={12} className="text-slate-300" />
+                    <div className="flex items-center gap-1">
+                      <select 
+                        onChange={(e) => {
+                          applyTemplate(e.target.value, updateMensajeApertura);
+                          e.target.value = '';
+                        }}
+                        className="text-[9px] border border-slate-200 rounded-md p-1 outline-none text-slate-500 bg-slate-50 max-w-[100px] truncate cursor-pointer hover:bg-slate-100"
+                      >
+                        <option value="">📚 Plantillas</option>
+                        {templates.filter(t => t.etapa === 'apertura').map(t => (
+                          <option key={t.id} value={t.contenido}>{t.nombre}</option>
+                        ))}
+                      </select>
+                      {setIsLibraryModalOpen && (
+                        <button onClick={() => setIsLibraryModalOpen('apertura')} className="p-1.5 bg-white border border-slate-200 rounded-md text-slate-400 hover:text-primary transition-colors shadow-sm" title="Gestionar Plantillas">
+                          <Settings size={12} />
+                        </button>
+                      )}
+                      <button onClick={() => handleCopy(lead.mensaje_apertura, 'apertura')} className="p-1.5 bg-white border border-slate-200 rounded-md text-slate-400 hover:text-primary transition-colors shadow-sm" title="Copiar mensaje">
+                        {copiedTab === 'apertura' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     className="w-full text-xs font-semibold p-3 rounded-xl border border-slate-200 bg-white shadow-sm focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none min-h-[90px] resize-none"
-                    defaultValue={lead.mensaje_apertura || ''}
-                    onBlur={(e) => updateMensajeApertura(lead.id, e.target.value)}
+                    value={lead.mensaje_apertura || ''}
+                    onChange={(e) => updateMensajeApertura(lead.id, e.target.value)}
                     placeholder="Escribe el mensaje de apertura..."
                   />
+                  {lead.sugerencia_respuesta_ia && (
+                    <button 
+                      onClick={() => updateMensajeApertura(lead.id, lead.sugerencia_respuesta_ia)}
+                      className="absolute bottom-3 right-3 p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-all opacity-0 group-hover/textarea:opacity-100 shadow-sm"
+                      title="Usar sugerencia IA"
+                    >
+                      <Sparkles size={12} />
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Mensaje Seguimiento (Antiguo Activador) */}
-              {(['Apertura Enviado', 'Respondió Apertura', 'Enviar Activador', 'Respondió Activador', 'Activador Enviado'].includes(lead.estado_contacto) || !!lead.mensaje_activador) && (
-                <div className="space-y-2">
+              {activeTab === 'seguimiento' && (
+                <div className="space-y-2 relative group/textarea animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">Seguimiento Estratégico</span>
-                    <Zap size={12} className="text-violet-400" />
+                    <div className="flex items-center gap-1">
+                      <select 
+                        onChange={(e) => {
+                          applyTemplate(e.target.value, updateMensajeActivador);
+                          e.target.value = '';
+                        }}
+                        className="text-[9px] border border-violet-100 rounded-md p-1 outline-none text-violet-500 bg-violet-50/50 max-w-[100px] truncate cursor-pointer hover:bg-violet-100/50"
+                      >
+                        <option value="">📚 Plantillas</option>
+                        {templates.filter(t => t.etapa === 'activador').map(t => (
+                          <option key={t.id} value={t.contenido}>{t.nombre}</option>
+                        ))}
+                      </select>
+                      {setIsLibraryModalOpen && (
+                        <button onClick={() => setIsLibraryModalOpen('activador')} className="p-1.5 bg-violet-50/50 border border-violet-100 rounded-md text-violet-400 hover:text-violet-600 transition-colors shadow-sm" title="Gestionar Plantillas">
+                          <Settings size={12} />
+                        </button>
+                      )}
+                      <button onClick={() => handleCopy(lead.mensaje_activador, 'seguimiento')} className="p-1.5 bg-violet-50/50 border border-violet-100 rounded-md text-violet-400 hover:text-violet-600 transition-colors shadow-sm" title="Copiar mensaje">
+                        {copiedTab === 'seguimiento' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     className="w-full text-xs font-semibold p-3 rounded-xl border border-violet-100 bg-violet-50/30 shadow-sm focus:border-violet-300 focus:ring-1 focus:ring-violet-200 transition-all outline-none min-h-[90px] resize-none"
-                    defaultValue={lead.mensaje_activador || ''}
-                    onBlur={(e) => updateMensajeActivador(lead.id, e.target.value)}
+                    value={lead.mensaje_activador || ''}
+                    onChange={(e) => updateMensajeActivador(lead.id, e.target.value)}
                     placeholder="Escribe el seguimiento aquí..."
                   />
+                  {lead.sugerencia_respuesta_ia && (
+                    <button 
+                      onClick={() => updateMensajeActivador(lead.id, lead.sugerencia_respuesta_ia)}
+                      className="absolute bottom-3 right-3 p-1.5 bg-violet-500/10 text-violet-500 hover:bg-violet-500 hover:text-white rounded-md transition-all opacity-0 group-hover/textarea:opacity-100 shadow-sm"
+                      title="Usar sugerencia IA"
+                    >
+                      <Sparkles size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'video' && (
+                <div className="space-y-2 relative group/textarea animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Video Presentación</span>
+                    <div className="flex items-center gap-1">
+                      <select 
+                        onChange={(e) => {
+                          applyTemplate(e.target.value, updateMensajeVideo);
+                          e.target.value = '';
+                        }}
+                        className="text-[9px] border border-rose-100 rounded-md p-1 outline-none text-rose-500 bg-rose-50 max-w-[100px] truncate cursor-pointer hover:bg-rose-100"
+                      >
+                        <option value="">📚 Plantillas</option>
+                        {templates.filter(t => t.etapa === 'video').map(t => (
+                          <option key={t.id} value={t.contenido}>{t.nombre}</option>
+                        ))}
+                      </select>
+                      {setIsLibraryModalOpen && (
+                        <button onClick={() => setIsLibraryModalOpen('video')} className="p-1.5 bg-rose-50 border border-rose-100 rounded-md text-rose-400 hover:text-rose-600 transition-colors shadow-sm" title="Gestionar Plantillas">
+                          <Settings size={12} />
+                        </button>
+                      )}
+                      <button onClick={() => handleCopy(lead.mensaje_video, 'video')} className="p-1.5 bg-rose-50 border border-rose-100 rounded-md text-rose-400 hover:text-rose-600 transition-colors shadow-sm" title="Copiar mensaje">
+                        {copiedTab === 'video' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    className="w-full text-xs font-semibold p-3 rounded-xl border border-rose-100 bg-rose-50/30 shadow-sm focus:border-rose-300 focus:ring-1 focus:ring-rose-200 transition-all outline-none min-h-[90px] resize-none"
+                    value={lead.mensaje_video || ''}
+                    onChange={(e) => updateMensajeVideo(lead.id, e.target.value)}
+                    placeholder="Escribe el mensaje del video aquí..."
+                  />
+                  {lead.sugerencia_respuesta_ia && (
+                    <button 
+                      onClick={() => updateMensajeVideo(lead.id, lead.sugerencia_respuesta_ia)}
+                      className="absolute bottom-3 right-3 p-1.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-md transition-all opacity-0 group-hover/textarea:opacity-100 shadow-sm"
+                      title="Usar sugerencia IA"
+                    >
+                      <Sparkles size={12} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

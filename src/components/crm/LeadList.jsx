@@ -48,11 +48,13 @@ const LeadList = ({
   updateNotas, 
   updateMensajeApertura, 
   updateMensajeActivador,
+  updateMensajeVideo,
   deleteLead, 
   setEditingLead, 
   setIsEditModalOpen, 
   setLeadToDelete, 
   setIsDeleteModalOpen,
+  setIsLibraryModalOpen,
   formatWa
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,10 +141,12 @@ const LeadList = ({
                 updateNotas={updateNotas}
                 updateMensajeApertura={updateMensajeApertura}
                 updateMensajeActivador={updateMensajeActivador}
+                updateMensajeVideo={updateMensajeVideo}
                 setEditingLead={setEditingLead}
                 setIsEditModalOpen={setIsEditModalOpen}
                 setLeadToDelete={setLeadToDelete}
                 setIsDeleteModalOpen={setIsDeleteModalOpen}
+                setIsLibraryModalOpen={setIsLibraryModalOpen}
                 formatWa={formatWa}
               />
             ))}
