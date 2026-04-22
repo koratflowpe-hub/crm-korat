@@ -20,6 +20,21 @@ function normalizeStr(str) {
     return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+const SALON_SERVICES_KEYWORDS = [
+    'manicura', 'pedicura', 'uñas', 'gel', 'acrilicas', 'semipermanente', 'esmaltado',
+    'corte de cabello', 'peinado', 'tinte', 'mechas', 'balayage', 'iluminacion', 'babylights',
+    'alisado', 'keratina', 'botox capilar', 'hidratacion', 'maquillaje', 'cejas', 'pestañas',
+    'depilacion', 'microblading', 'micropigmentacion', 'faciales', 'masajes', 'limpieza facial',
+    'spa', 'barberia', 'barba', 'extensiones', 'planchado', 'henna', 'lifting', 'permanente',
+    'depilacion laser', 'cera', 'hilo', 'uñas esculpidas', 'polygel', 'soft gel'
+];
+
+function extractServices(text) {
+    if (!text) return [];
+    const normalizedText = normalizeStr(text);
+    return SALON_SERVICES_KEYWORDS.filter(service => normalizedText.includes(normalizeStr(service)));
+}
+
 export async function runScraper({ 
     ubicacion = "", 
     palabrasClavesRaw = "salon de belleza, spa, barberia", 
@@ -230,8 +245,14 @@ export async function runScraper({
                         });
                         
                         if (extractedText.length > 0) {
-                            info_rrss_text = extractedText.join('\n\n');
-                            log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev!`);
+                            const combinedText = extractedText.join('\n\n');
+                            const detectedServices = extractServices(combinedText);
+                            
+                            info_rrss_text = combinedText;
+                            if (detectedServices.length > 0) {
+                                info_rrss_text += `\n\n✨ SERVICIOS DETECTADOS EN LA WEB: ${detectedServices.join(', ')}`;
+                            }
+                            log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev! (${detectedServices.length} servicios detectados)`);
                         }
                     } catch (e) {
                         log(`     ⚠️ API Serper inaccesible (${e.message}). Usando rastreo directo...`);
@@ -262,6 +283,19 @@ export async function runScraper({
                                 lead.url_facebook = fbMatch[1];
                                 log(`     💙 ¡Facebook hallado en el sitio web!`);
                             }
+                        }
+                        }
+
+                        // Extraer servicios también del sitio web real
+                        const webServices = extractServices(html);
+                        if (webServices.length > 0) {
+                            const currentServices = extractServices(info_rrss_text || '');
+                            const allServices = Array.from(new Set([...currentServices, ...webServices]));
+                            
+                            if (!info_rrss_text) info_rrss_text = "";
+                            // Remover línea anterior de servicios si existe para actualizarla
+                            info_rrss_text = info_rrss_text.split('\n\n✨ SERVICIOS DETECTADOS')[0];
+                            info_rrss_text += `\n\n✨ SERVICIOS DETECTADOS EN LA WEB: ${allServices.join(', ')}`;
                         }
                     } catch (err) {
                         log(`     🔸 No se pudo acceder al sitio web para rastreo profundo.`);
