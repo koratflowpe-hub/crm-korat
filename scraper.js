@@ -11,7 +11,7 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 
 if (!GOOGLE_MAPS_API_KEY || !SUPABASE_URL) {
     console.error("⚠️ Faltan API Keys en el archivo .env");
-    process.exit(1);
+    // No usamos process.exit(1) en serverless ya que mata el proceso de la función y da error 503
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -181,33 +181,30 @@ export async function runScraper({
                     .eq('telefono', telefono);
                 
                 if (dataBlacklist && dataBlacklist.length > 0) {
-                    omitidos++;
-                    log(`   ⛔ [Blacklist] ${place.displayName?.text} (Fue eliminado permanentemente antes)`);
-                    continue;
+                    log(`   🗑️ [Descartado] "${place.displayName?.text}" - No coincide con rubro salón/estética.`);
+                    return;
                 }
 
-                // Parsear URL de Website o RRSS
-                const url = place.websiteUri || null;
-                let sitioweb = null;
+                const telefono = place.nationalPhoneNumber.replace(/\s/g, '');
+                let sitioweb = place.websiteUri || null;
                 let url_instagram = null;
                 let url_facebook = null;
 
-                if (url) {
-                    const lcUrl = url.toLowerCase();
-                    if (lcUrl.includes('instagram.com')) {
+                // Detectar si el "sitioweb" ya es una red social
+                if (sitioweb) {
+                    const url = sitioweb.toLowerCase();
+                    if (url.includes('instagram.com')) {
                         url_instagram = url;
-                    } else if (lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) {
+                    } else if (url.includes('facebook.com') || url.includes('fb.com')) {
                         url_facebook = url;
-                    } else {
-                        sitioweb = url;
                     }
                 }
 
-                // Si pasa todo, verificar WhatsApp (Evolution API)
+                // Verificar WhatsApp (Evolution API)
                 const evoUrl = process.env.EVOLUTION_API_URL;
                 const evoInstance = process.env.EVOLUTION_API_INSTANCE;
                 const evoApiKey = process.env.EVOLUTION_API_KEY;
-                let hasWA = true; // Por defecto asumimos true si la API falla
+                let hasWA = true;
                 
                 if (evoUrl && evoInstance && evoApiKey) {
                     let cleanPhone = telefono.replace(/\D/g, '');
@@ -221,143 +218,76 @@ export async function runScraper({
                             timeout: 8000
                         });
                         const data = waCheckRes.data;
-                        if (Array.isArray(data) && data.length > 0) {
-                            if (!data[0].exists) {
-                                hasWA = false;
-                                log(`   📴 [Sin WhatsApp] "${place.displayName?.text}" (${cleanPhone}) -> DESCARTADO`);
-                            }
+                        if (Array.isArray(data) && data.length > 0 && !data[0].exists) {
+                            hasWA = false;
+                            log(`   📴 [Sin WhatsApp] "${place.displayName?.text}" (${cleanPhone}) -> DESCARTADO`);
                         }
                     } catch (err) {
-                        log(`   ⚠️ No se pudo validar WA para ${cleanPhone} (Manteniendo por precaución)`);
+                        log(`   ⚠️ No se pudo validar WA para ${cleanPhone}`);
                     }
                 }
 
-                if (!hasWA) continue; // Si se confirmó que no tiene WA, no lo guardamos
+                if (!hasWA) return;
 
-                // Si pasa todo, insertar
-                const lead = {
-                    nombre_salon: place.displayName?.text || 'Desconocido',
-                    direccion: place.formattedAddress || 'Sin dirección',
-                    telefono: telefono,
-                    calificacion: place.rating || 0,
-                    total_resenas: place.userRatingCount || 0,
-                    sitioweb: sitioweb,
-                    url_instagram: url_instagram,
-                    url_facebook: url_facebook,
-                    estado_contacto: 'Pendiente Análisis IA'
-                };
-
-                // ============================================
-                // BÚSQUEDA PROFUNDA HÍBRIDA (API SERPER + WEB CRAWLING)
-                // ============================================
+                // Enriquecimiento vía Serper
                 let info_rrss_text = null;
                 const SERPER_KEY = process.env.SERPER_API_KEY;
 
-                // 1. Intento por API (Serper.dev - Confiable 100%)
                 if (SERPER_KEY) {
                     try {
-                        // Búsqueda idéntica a como lo haría un humano en Google
-                        const searchStr = `${lead.nombre_salon} ${ubicacion}`;
+                        const searchStr = `${place.displayName?.text} ${ubicacion}`;
                         const resSearch = await axios.post(`https://google.serper.dev/search`, 
-                        {
-                            q: searchStr,
-                            gl: 'pe',
-                            hl: 'es',
-                            num: 5
-                        }, 
-                        {
-                            headers: {
-                                'X-API-KEY': SERPER_KEY,
-                                'Content-Type': 'application/json'
-                            },
-                            timeout: 5000
-                        });
+                        { q: searchStr, gl: 'pe', hl: 'es', num: 5 }, 
+                        { headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' }, timeout: 5000 });
                         
                         const items = resSearch.data.organic || [];
                         let extractedText = [];
-
                         items.forEach(res => {
                             extractedText.push(`[${res.title}] ${res.snippet}`);
                             const lcUrl = res.link.toLowerCase();
-                            
-                            // Capturar el primero de la lista sin filtro restrictivo
-                            if (lcUrl.includes('instagram.com') && !lead.url_instagram) {
-                                lead.url_instagram = res.link;
-                                log(`     📸 Instagram capturado (1er resultado): ${res.link}`);
-                            }
-                            if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !lead.url_facebook) {
-                                lead.url_facebook = res.link;
-                                log(`     💙 Facebook capturado (1er resultado): ${res.link}`);
-                            }
+                            if (lcUrl.includes('instagram.com') && !url_instagram) url_instagram = res.link;
+                            if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !url_facebook) url_facebook = res.link;
                         });
                         
                         if (extractedText.length > 0) {
                             const combinedText = extractedText.join('\n\n');
                             const detectedServices = extractServices(combinedText);
-                            
                             info_rrss_text = combinedText;
-                            if (detectedServices.length > 0) {
-                                info_rrss_text += `\n\n✨ SERVICIOS DETECTADOS EN LA WEB: ${detectedServices.join(', ')}`;
-                            }
-                            log(`     🌟 ¡Redes y descripciones extraídas vía Serper.dev! (${detectedServices.length} servicios detectados)`);
+                            if (detectedServices.length > 0) info_rrss_text += `\n\n✨ SERVICIOS DETECTADOS EN LA WEB: ${detectedServices.join(', ')}`;
                         }
                     } catch (e) {
-                        log(`     ⚠️ API Serper inaccesible (${e.message}). Usando rastreo directo...`);
+                        log(`     ⚠️ API Serper inaccesible para "${place.displayName?.text}": ${e.message}`);
                     }
                 }
 
-                // 2. RASTREO DIRECTO DEL SITIO WEB (Fallback Maestro)
-                if (lead.sitioweb && (!lead.url_instagram || !lead.url_facebook) && !lead.sitioweb.includes('facebook.com') && !lead.sitioweb.includes('instagram.com')) {
-                    try {
-                        log(`   🕸️  Rastreando sitio web oficial: ${lead.sitioweb}...`);
-                        const webRes = await axios.get(lead.sitioweb, { 
-                            timeout: 8000, 
-                            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } 
-                        });
-                        const html = webRes.data.toLowerCase();
-                        
-                        // Regex para cazar redes sociales en el código fuente
-                        if (!lead.url_instagram) {
-                            const igMatch = html.match(/href=["'](https?:\/\/(www\.)?instagram\.com\/[a-z0-9_\-\.]+)\/?["']/);
-                            if (igMatch) {
-                                lead.url_instagram = igMatch[1];
-                                log(`     📸 ¡Instagram hallado en el sitio web!`);
-                            }
-                        }
-                        if (!lead.url_facebook) {
-                            const fbMatch = html.match(/href=["'](https?:\/\/(www\.)?(facebook\.com|fb\.com)\/[a-z0-9_\-\.]+)\/?["']/);
-                            if (fbMatch) {
-                                lead.url_facebook = fbMatch[1];
-                                log(`     💙 ¡Facebook hallado en el sitio web!`);
-                            }
-                        }
+                // Guardar en Supabase
+                try {
+                    const { error: insertError } = await supabase
+                        .from('leads_salon')
+                        .upsert([{
+                            nombre_salon: place.displayName?.text || 'Desconocido',
+                            direccion: place.formattedAddress || 'Sin dirección',
+                            telefono: telefono,
+                            calificacion: place.rating || 0,
+                            total_resenas: place.userRatingCount || 0,
+                            sitioweb: sitioweb,
+                            url_instagram: url_instagram,
+                            url_facebook: url_facebook,
+                            estado_contacto: 'Pendiente Análisis IA',
+                            servicios_detectados: info_rrss_text
+                        }], { onConflict: 'telefono' });
 
-                        // Extraer servicios también del sitio web real
-                        const webServices = extractServices(html);
-                        if (webServices.length > 0) {
-                            const currentServices = extractServices(info_rrss_text || '');
-                            const allServices = Array.from(new Set([...currentServices, ...webServices]));
-                            
-                            if (!info_rrss_text) info_rrss_text = "";
-                            // Remover línea anterior de servicios si existe para actualizarla
-                            info_rrss_text = info_rrss_text.split('\n\n✨ SERVICIOS DETECTADOS')[0];
-                            info_rrss_text += `\n\n✨ SERVICIOS DETECTADOS EN LA WEB: ${allServices.join(', ')}`;
-                        }
-                    } catch (err) {
-                        log(`     🔸 No se pudo acceder al sitio web para rastreo profundo.`);
+                    if (!insertError) {
+                        log(`   ✅ Lead guardado: "${place.displayName?.text}"`);
+                        insertados++;
                     }
+                } catch (err) {
+                    log(`   ❌ Error crítico al guardar: ${err.message}`);
                 }
+            });
 
-                lead.info_rrss = info_rrss_text;
+            await Promise.all(enrichmentPromises);
 
-                const { error: insErr } = await supabase.from('leads_salones').insert([lead]);
-                if (insErr) {
-                    log(`   ❌ [Error DB] ${lead.nombre_salon}: ${insErr.message}`);
-                } else {
-                    insertados++;
-                    log(`   ✅ [LEAD CAPTURADO] ${insertados}/${limit} -> ${lead.nombre_salon}`);
-                }
-            } // Fin places
         } catch (error) {
             log(`❌ Error consultando Google Maps: ${error.response?.data || error.message}`);
         }
