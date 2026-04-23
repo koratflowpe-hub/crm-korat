@@ -21,18 +21,56 @@ function normalizeStr(str) {
 }
 
 const SALON_SERVICES_KEYWORDS = [
-    'manicura', 'pedicura', 'uñas', 'gel', 'acrilicas', 'semipermanente', 'esmaltado',
-    'corte de cabello', 'peinado', 'tinte', 'mechas', 'balayage', 'iluminacion', 'babylights',
-    'alisado', 'keratina', 'botox capilar', 'hidratacion', 'maquillaje', 'cejas', 'pestañas',
-    'depilacion', 'microblading', 'micropigmentacion', 'faciales', 'masajes', 'limpieza facial',
-    'spa', 'barberia', 'barba', 'extensiones', 'planchado', 'henna', 'lifting', 'permanente',
-    'depilacion laser', 'cera', 'hilo', 'uñas esculpidas', 'polygel', 'soft gel'
+    'manicura', 'pedicura', 'uñas', 'gel', 'acrilicas', 'semipermanente', 'esmaltado', 'polygel', 'soft gel', 'kapping',
+    'corte', 'peinado', 'tinte', 'mechas', 'balayage', 'iluminacion', 'babylights', 'colorimetria', 'decoloracion',
+    'alisado', 'keratina', 'botox', 'hidratacion', 'maquillaje', 'makeup', 'cejas', 'pestañas', 'extensiones de pestañas', 'volumen ruso',
+    'depilacion', 'microblading', 'micropigmentacion', 'faciales', 'masajes', 'limpieza facial', 'laminado', 'diseño de mirada',
+    'spa', 'barberia', 'barba', 'extensiones', 'planchado', 'henna', 'lifting', 'permanente', 'rizado',
+    'laser', 'cera', 'hilo', 'esculpidas'
 ];
 
 function extractServices(text) {
     if (!text) return [];
     const normalizedText = normalizeStr(text);
-    return SALON_SERVICES_KEYWORDS.filter(service => normalizedText.includes(normalizeStr(service)));
+    const found = new Set();
+    
+    SALON_SERVICES_KEYWORDS.forEach(service => {
+        const normService = normalizeStr(service);
+        // Use regex with word boundaries to prevent matching words inside other words (e.g., "spa" inside "espalda")
+        // Also supports simple plurals (-s or -es)
+        const regex = new RegExp(`\\b${normService}(s|es)?\\b`, 'i');
+        if (regex.test(normalizedText)) {
+            found.add(service);
+        }
+    });
+    return Array.from(found);
+}
+
+function isUrlRelatedToSalon(url, salonName) {
+    if (!url || !salonName) return false;
+    try {
+        const urlObj = new URL(url);
+        // Clean path to only keep alphanumeric characters for matching
+        const path = urlObj.pathname.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        // Remove generic words from salon name to find the "core" identifier
+        const cleanName = normalizeStr(salonName)
+            .replace(/\b(salon|spa|barberia|belleza|beauty|studio|peluqueria|estilistas|centro|de|la|el|los|las)\b/gi, '')
+            .trim();
+        
+        const nameWords = cleanName.split(/\s+/).filter(w => w.length > 2);
+        
+        // If it's a very generic name and everything was stripped, assume valid to not lose it
+        if (nameWords.length === 0) return true; 
+
+        // Match if at least one significant word is found in the profile URL path
+        for (const word of nameWords) {
+            if (path.includes(word)) return true;
+        }
+        return false;
+    } catch(e) {
+        return true; // Fallback if URL parsing fails
+    }
 }
 
 export async function runScraper({ 
@@ -218,7 +256,8 @@ export async function runScraper({
                 // 1. Intento por API (Serper.dev - Confiable 100%)
                 if (SERPER_KEY) {
                     try {
-                        const searchStr = `${lead.nombre_salon} ${ubicacion} instagram OR facebook`;
+                        // Búsqueda usando Nombre + Dirección Completa + Ubicación
+                        const searchStr = `${lead.nombre_salon} ${lead.direccion} ${ubicacion} (site:instagram.com OR site:facebook.com)`;
                         const resSearch = await axios.post(`https://google.serper.dev/search`, 
                         {
                             q: searchStr,
@@ -240,8 +279,16 @@ export async function runScraper({
                         items.forEach(res => {
                             extractedText.push(`[${res.title}] ${res.snippet}`);
                             const lcUrl = res.link.toLowerCase();
-                            if (!lead.url_instagram && lcUrl.includes('instagram.com')) lead.url_instagram = res.link;
-                            if (!lead.url_facebook && (lcUrl.includes('facebook.com') || lcUrl.includes('fb.com'))) lead.url_facebook = res.link;
+                            
+                            // Capturar el primero de la lista sin filtro restrictivo
+                            if (lcUrl.includes('instagram.com') && !lead.url_instagram) {
+                                lead.url_instagram = res.link;
+                                log(`     📸 Instagram capturado (1er resultado): ${res.link}`);
+                            }
+                            if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !lead.url_facebook) {
+                                lead.url_facebook = res.link;
+                                log(`     💙 Facebook capturado (1er resultado): ${res.link}`);
+                            }
                         });
                         
                         if (extractedText.length > 0) {

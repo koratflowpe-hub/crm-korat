@@ -1,104 +1,84 @@
+// src/services/n8nService.js
+
 /**
- * High-level service for n8n interactions.
- * Sends structured context to the webhook defined in .env
+ * Service to handle sending messages via n8n Webhook.
+ * It ensures formatting is preserved and correctly structured for Evolution API.
  */
 
-const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+// You can set this in your environment variables, e.g., VITE_N8N_WEBHOOK_URL
+// For now, we fallback to a default configurable URL.
+// Usamos una ruta relativa para pasar por el proxy configurado en Vite/Netlify y evitar CORS
+const BASE_N8N_URL = '/api/n8n';
+const N8N_WEBHOOK_URL = (import.meta.env.VITE_N8N_WEBHOOK_URL || '').replace('https://hooks.koratflow.agency', BASE_N8N_URL) || `${BASE_N8N_URL}/webhook/koratflow-evolution`;
 
-class N8nService {
+export const n8nService = {
   /**
-   * Universal trigger for AI help within the script editor.
-   * @param {string} action - Descriptive action (e.g., 'assist')
-   * @param {Object} context - All relevant data from the script and pillar
-   * @param {string} instruction - Optional user instruction (e.g. "make it funnier")
+   * Envía un mensaje a través de n8n.
+   * @param {Object} data 
+   * @param {string} data.phone - Número de teléfono del destinatario.
+   * @param {string} data.message - Contenido del mensaje (soporta saltos de línea y emojis).
+   * @param {string} data.type - Tipo de mensaje (demo, rec_24h, rec_3h, post_cita, etc.).
+   * @param {string} [data.lead_name] - Nombre del lead (opcional).
+   * @param {string} [data.service] - Servicio de interés (opcional).
+   * @returns {Promise<boolean>}
    */
-  async triggerScriptAi(action, context, instruction = '') {
-    if (!WEBHOOK_URL) {
-      console.error("n8n Webhook URL is not configured in .env");
-      throw new Error("Configuración de IA no encontrada.");
-    }
-
-    const payload = {
-      action,
-      timestamp: new Date().toISOString(),
-      user_instruction: instruction,
-      // Flat properties for backward compatibility
-      script_id: context?.script_id,
-      title: context?.title,
-      current_content: context?.current_content || '',
-      field_target: context?.field_target,
-      block_id: context?.block_id || null,
-      pillar_id: context?.pillar_id,
-      pillar_name: context?.pillar_name || 'Sin pilar',
-      pillar_description: context?.pillar_description || '',
-      pillar_objective: context?.pillar_objective || '',
-      pillar_keywords: context?.pillar_keywords || [],
-      user_id: context?.user_id,
-      raw_text: context?.raw_text || '',
+  async sendMessage(data) {
+    try {
+      console.log('Enviando a n8n:', data);
       
-      // Nested objects for newer workflow logic
-      script: {
-        id: context?.script_id,
-        title: context?.title,
-        current_content: context?.current_content || '',
-        field_target: context?.field_target,
-        block_id: context?.block_id || null,
-        master_draft: context?.master_draft || '',
-        video_copy: context?.video_copy || '',
-        shot_list: context?.shot_list || '',
-        lighting_setup: context?.lighting_setup || '',
-        camera_setup: context?.camera_setup || '',
-        hashtags: context?.hashtags || '',
-        blocks: context?.full_blocks || []
-      },
-      pillar: {
-        id: context?.pillar_id,
-        name: context?.pillar_name || 'Sin pilar',
-        description: context?.pillar_description || '',
-        objective: context?.pillar_objective || '',
-        keywords: context?.pillar_keywords || []
-      }
-    };
+      // Aseguramos que el teléfono esté limpio (solo números)
+      const cleanPhone = data.phone?.replace(/\D/g, '') || '';
 
-    try {
-      const response = await fetch(`${WEBHOOK_URL}guion`, {
+      const payload = {
+        number: cleanPhone,
+        text: data.message,
+        type: data.type,
+        lead_id: data.lead_id, // Agregado
+        interaction_type: data.interaction_type, // Agregado
+        interaction_step: data.interaction_step, // Agregado
+        metadata: {
+          leadName: data.lead_name || '',
+          service: data.service || '',
+          source: 'KoratFlow CRM'
+        }
+      };
+
+      // Si la URL es la por defecto, simulamos éxito para que no falle la UI en desarrollo
+      if (N8N_WEBHOOK_URL.includes('tu-n8n.com')) {
+        console.warn('Usando URL de n8n por defecto. Simulando envío exitoso.');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return true;
+      }
+
+      const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error(`n8n error: ${response.statusText}`);
-      return await response.json();
+
+      if (!response.ok) {
+        throw new Error(`Error en n8n: ${response.status} ${response.statusText}`);
+      }
+
+      return true;
     } catch (error) {
-      console.error("Failed to trigger n8n assistance:", error);
+      console.error('Error enviando mensaje por n8n:', error);
       throw error;
     }
-  }
+  },
 
   /**
-   * Generates strategic content pillars based on brand niche.
+   * Permite actualizar la URL del webhook en tiempo de ejecución (útil para configuración en UI)
+   * @param {string} url 
    */
-  async triggerPillarAi(brandContext) {
-    if (!WEBHOOK_URL) throw new Error("Configuración de IA no encontrada.");
+  setWebhookUrl(url) {
+    localStorage.setItem('n8n_webhook_url', url);
+  },
 
-    const payload = {
-      action: 'brainstorm_pillars',
-      brand: brandContext,
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      const response = await fetch(`${WEBHOOK_URL}guion`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error(`n8n error: ${response.statusText}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to generate pillars:", error);
-      throw error;
-    }
+  getWebhookUrl() {
+    return localStorage.getItem('n8n_webhook_url') || '';
   }
-}
-
-export const n8nService = new N8nService();
+};

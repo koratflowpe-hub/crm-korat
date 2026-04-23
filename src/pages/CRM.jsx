@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Database } from 'lucide-react';
+import { Plus, Package, Database, PlayCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Hooks
@@ -12,6 +12,7 @@ import ScraperControls from '../components/crm/ScraperControls';
 import LeadList from '../components/crm/LeadList';
 import { CreateLeadModal, EditLeadModal, DeleteLeadModal } from '../components/crm/Modals';
 import MessageLibraryModal from '../components/crm/MessageLibraryModal';
+import LiveDemoModal from '../components/crm/LiveDemoModal';
 
 // Utils
 import { formatWa } from '../utils/crmHelpers';
@@ -30,6 +31,7 @@ export default function CRM() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false); // Puede ser boolean o string (tab name)
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   
   // Lead states para modales
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
@@ -48,6 +50,7 @@ export default function CRM() {
     updateMensajeApertura, 
     updateMensajeActivador,
     updateMensajeVideo,
+    updateLastTemplateId,
     deleteLead, 
     createLead,
     updateLead,
@@ -173,6 +176,12 @@ export default function CRM() {
              
              <div className="flex items-center gap-3">
                <button 
+                 onClick={() => setIsDemoModalOpen(true)} 
+                 className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-100 active:scale-95"
+               >
+                 <PlayCircle size={16} /> <span>Modo Demo</span>
+               </button>
+               <button 
                  onClick={() => setIsLibraryModalOpen(true)} 
                  className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
                >
@@ -215,12 +224,14 @@ export default function CRM() {
           updateMensajeApertura={updateMensajeApertura}
           updateMensajeActivador={updateMensajeActivador}
           updateMensajeVideo={updateMensajeVideo}
+          updateLastTemplateId={updateLastTemplateId}
           deleteLead={deleteLead}
           setEditingLead={setEditingLead}
           setIsEditModalOpen={setIsEditModalOpen}
           setLeadToDelete={setLeadToDelete}
           setIsDeleteModalOpen={setIsDeleteModalOpen}
           setIsLibraryModalOpen={setIsLibraryModalOpen}
+          updateLead={updateLead}
           formatWa={formatWa}
         />
       </main>
@@ -253,6 +264,11 @@ export default function CRM() {
         isOpen={!!isLibraryModalOpen}
         initialTab={typeof isLibraryModalOpen === 'string' ? isLibraryModalOpen : 'apertura'}
         onClose={() => setIsLibraryModalOpen(false)}
+      />
+
+      <LiveDemoModal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
       />
     </div>
   );

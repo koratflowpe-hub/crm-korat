@@ -64,4 +64,13 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    proxy: {
+      '/api/n8n': {
+        target: 'https://hooks.koratflow.agency',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/n8n/, '')
+      }
+    }
+  }
 })

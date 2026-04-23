@@ -76,5 +76,7 @@ export const useTemplates = () => {
     createTemplate: (newTemplate) => createTemplateMutation.mutate(newTemplate),
     updateTemplate: (id, updates) => updateTemplateMutation.mutate({ id, updates }),
     deleteTemplate: (id) => deleteTemplateMutation.mutate(id),
+    incrementSentCount: (id, currentCount = 0) => updateTemplateMutation.mutate({ id, updates: { sent_count: currentCount + 1 } }),
+    incrementSuccessCount: (id, currentCount = 0) => updateTemplateMutation.mutate({ id, updates: { success_count: currentCount + 1 } }),
   };
 };

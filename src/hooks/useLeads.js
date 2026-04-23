@@ -89,6 +89,7 @@ export const useLeads = (testMode = true) => {
     updateMensajeApertura: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_apertura: texto } }),
     updateMensajeActivador: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_activador: texto } }),
     updateMensajeVideo: (id, texto) => updateLeadMutation.mutate({ id, updates: { mensaje_video: texto } }),
+    updateLastTemplateId: (id, templateId) => updateLeadMutation.mutate({ id, updates: { last_template_id: templateId } }),
     // useCallback garantiza referencia estable: el useEffect en CRM.jsx no recreará el canal Supabase en cada render
     refetchLeads: useCallback(() => queryClient.invalidateQueries({ queryKey: ['leads'] }), [queryClient]),
   };
