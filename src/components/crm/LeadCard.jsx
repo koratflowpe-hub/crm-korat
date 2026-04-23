@@ -65,7 +65,7 @@ const LeadCard = ({
     adjustHeight(activadorRef);
     adjustHeight(videoRef);
     adjustHeight(notasRef);
-  }, [localApertura, localActivador, localVideo, lead.notas]);
+  }, [localApertura, localActivador, localVideo, lead.notas, isExpanded]);
 
   const handleSendFlow = async (tipo) => {
     if (!lead.telefono) {

@@ -256,8 +256,8 @@ export async function runScraper({
                 // 1. Intento por API (Serper.dev - Confiable 100%)
                 if (SERPER_KEY) {
                     try {
-                        // Búsqueda usando Nombre + Dirección Completa + Ubicación
-                        const searchStr = `${lead.nombre_salon} ${lead.direccion} ${ubicacion} (site:instagram.com OR site:facebook.com)`;
+                        // Búsqueda idéntica a como lo haría un humano en Google
+                        const searchStr = `${lead.nombre_salon} ${ubicacion}`;
                         const resSearch = await axios.post(`https://google.serper.dev/search`, 
                         {
                             q: searchStr,
