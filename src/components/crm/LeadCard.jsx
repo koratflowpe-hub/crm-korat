@@ -190,7 +190,7 @@ const LeadCard = ({
   const statusColor = getStatusColor(lead.estado_contacto);
 
   return (
-    <div className={`group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300 ${isExpanded ? 'ring-2 ring-primary/5' : ''}`}>
+    <div className={`h-fit group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300 ${isExpanded ? 'ring-2 ring-primary/5' : ''}`}>
       
       {/* Progress Bar */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100 rounded-t-2xl overflow-hidden">
