@@ -180,9 +180,10 @@ const LeadCard = ({
   const getProgress = () => {
     const s = lead.estado_contacto;
     if (s === 'Cliente Cerrado') return 100;
-    if (s === 'Reunión Agendada') return 85;
-    if (['Enviar Activador', 'Activador Enviado', 'Respondió Activador'].includes(s)) return 60;
-    if (['Apertura Enviado', 'Respondió Apertura'].includes(s)) return 30;
+    if (s === 'Reunión Agendada') return 90;
+    if (['Video Enviado', 'Respondió Video'].includes(s)) return 75;
+    if (['Enviar Activador', 'Activador Enviado', 'Respondió Activador'].includes(s)) return 50;
+    if (['Apertura Enviado', 'Respondió Apertura'].includes(s)) return 25;
     if (s === 'No Interesado') return 100;
     return 5;
   };

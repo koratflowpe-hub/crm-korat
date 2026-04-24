@@ -7,7 +7,7 @@
 
 // You can set this in your environment variables, e.g., VITE_N8N_WEBHOOK_URL
 // For now, we fallback to a default configurable URL.
-// Usamos una ruta relativa para pasar por el proxy configurado en Vite/Netlify y evitar CORS
+// Usamos una ruta relativa para pasar por el proxy configurado y evitar CORS
 const BASE_N8N_URL = '/api/n8n';
 const N8N_WEBHOOK_URL = (import.meta.env.VITE_N8N_WEBHOOK_URL || '').replace('https://hooks.koratflow.agency', BASE_N8N_URL) || `${BASE_N8N_URL}/webhook/koratflow-evolution`;
 

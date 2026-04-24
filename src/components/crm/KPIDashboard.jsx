@@ -3,7 +3,9 @@ import { Users, Activity, Flame, Trophy } from 'lucide-react';
 
 const KPIDashboard = ({ leads }) => {
   const leadsApertura = leads.filter(l => l.estado_contacto === 'Apertura Enviado').length;
-  const leadsActivador = leads.filter(l => l.estado_contacto === 'Activador Enviado' || l.estado_contacto === 'Respondió Apertura').length;
+  const leadsActivador = leads.filter(l => 
+    ['Activador Enviado', 'Respondió Apertura', 'Video Enviado', 'Respondió Activador', 'Respondió Video'].includes(l.estado_contacto)
+  ).length;
   const leadsCerrados = leads.filter(l => l.estado_contacto === 'Cliente Cerrado').length;
   
   const tasaApertura = leads.length > 0 ? Math.round((leadsApertura / leads.length) * 100) : 0;

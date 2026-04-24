@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const useScraper = () => {
   const [scraping, setScraping] = useState(false);
-  const [serverOnline, setServerOnline] = useState(true); // Netlify siempre está "online"
+  const [serverOnline, setServerOnline] = useState(true); // El servicio de n8n siempre está "online"
   const [scraperLogs, setScraperLogs] = useState([]);
+  const isFetchingRef = useRef(false);
 
   const iniciarScraper = async (params, onFinish) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setScraping(true);
-    setScraperLogs(["Iniciando extracción en la nube de Netlify..."]);
+    setScraperLogs(["Iniciando extracción en la nube de n8n..."]);
     
     try {
       const res = await fetch(import.meta.env.VITE_SCRAPER_URL, {
@@ -29,6 +32,7 @@ export const useScraper = () => {
     } catch (err) {
       setScraperLogs(prev => [...prev, "Error de conexión con el servidor de n8n."]);
     } finally {
+      isFetchingRef.current = false;
       setScraping(false);
     }
   };
@@ -36,7 +40,7 @@ export const useScraper = () => {
   const detenerScraper = async () => {
     // Las funciones serverless no se pueden "detener" una vez lanzadas,
     // pero podemos limpiar el estado local.
-    setScraperLogs(prev => [...prev, "No es posible detener una operación en curso en Netlify, pero el sistema ignorará los resultados."]);
+    setScraperLogs(prev => [...prev, "No es posible detener una operación en curso en n8n, pero el sistema ignorará los resultados."]);
     setScraping(false);
   };
 
