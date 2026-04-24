@@ -14,7 +14,12 @@ export const useScraper = () => {
     
     // Usamos el rewrite de Vercel en producción para evitar errores de CORS
     // Si no está definido, usamos la ruta relativa que maneja vercel.json
-    const scraperUrl = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
+    let scraperUrl = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
+    
+    // Defensa: Si Vercel tiene un .env viejo con localhost, lo forzamos a usar la ruta relativa en prod
+    if (window.location.hostname !== 'localhost' && scraperUrl.includes('localhost')) {
+      scraperUrl = '/api/scraper';
+    }
     
     console.log("🚀 Enviando petición de scraping a:", scraperUrl);
 
