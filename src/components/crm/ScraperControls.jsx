@@ -31,7 +31,38 @@ const ScraperControls = ({
     }
   }, [scraperLogs, showConsole]);
 
+  const [detectedCity, setDetectedCity] = useState("Huaral");
+
+  // Efecto para detectar el nombre de la ciudad según las coordenadas del mapa
+  useEffect(() => {
+    const fetchCityName = async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`);
+        const data = await res.json();
+        const city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.county || "Huaral";
+        setDetectedCity(city);
+      } catch (err) {
+        console.error("Error al detectar ciudad:", err);
+      }
+    };
+    fetchCityName();
+  }, [lat, lng]);
+
   const lastLog = scraperLogs[scraperLogs.length - 1] || "Esperando instrucciones...";
+
+  const handleStartScraper = () => {
+    // Construimos los parámetros que n8n necesita para que no lleguen como undefined
+    const params = {
+      ubicacion: detectedCity, // ¡Ahora la ubicación es real y detectada!
+      lat: lat,
+      lng: lng,
+      radius: radius,
+      limit: limit,
+      pureKeywords: pureKeywords,
+      testMode: true
+    };
+    iniciarScraper(params);
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50 overflow-hidden mb-12 transition-all hover:shadow-2xl">
@@ -53,7 +84,7 @@ const ScraperControls = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </div>
-            Radar de Prospección
+            Radar: {detectedCity}
           </div>
         </div>
 
@@ -102,38 +133,64 @@ const ScraperControls = ({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Filtros de Nicho</label>
-            <textarea
-              className="w-full h-24 p-5 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm leading-relaxed font-semibold text-slate-700 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none"
-              value={pureKeywords}
-              onChange={e => setPureKeywords(e.target.value)}
-              placeholder="Ej: salon de belleza, uñas, spa, barberia..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Ubicación de Búsqueda</label>
+              <div className="relative group">
+                <input
+                  type="text"
+                  className="w-full pl-12 h-14 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                  value={detectedCity}
+                  onChange={e => setDetectedCity(e.target.value)}
+                  placeholder="Ciudad detectada..."
+                />
+                <Crosshair className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-primary transition-colors" />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Filtros de Nicho</label>
+              <div className="relative group">
+                <input
+                  type="text"
+                  className="w-full pl-12 h-14 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                  value={pureKeywords}
+                  onChange={e => setPureKeywords(e.target.value)}
+                  placeholder="Ej: salon, spa..."
+                />
+                <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-primary transition-colors" />
+              </div>
+            </div>
           </div>
 
           {/* ── NUEVA CONSOLA "STATUS TICKER" ── */}
-          <div className="mt-2 group/console">
+          <div className="mt-2 group/console relative">
+            {scraping && (
+              <div className="absolute -top-12 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-primary/90 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 animate-bounce flex items-center gap-2">
+                  <Activity size={12} className="animate-pulse" />
+                  Escaneo de Inteligencia Activo
+                </div>
+              </div>
+            )}
+            
             <div 
               className={`flex items-center gap-3 p-1.5 pl-4 rounded-2xl border transition-all duration-500 overflow-hidden ${
                 scraping 
-                ? 'bg-slate-900 border-slate-800' 
+                ? 'bg-slate-900 border-primary/50 shadow-lg shadow-primary/10' 
                 : 'bg-slate-50 border-slate-100'
               }`}
             >
               <div className="flex items-center gap-2 shrink-0">
-                <Terminal size={14} className={scraping ? 'text-emerald-400' : 'text-slate-400'} />
-                {scraping && <Activity size={12} className="text-emerald-500 animate-pulse" />}
+                <Terminal size={14} className={scraping ? 'text-primary' : 'text-slate-400'} />
+                {scraping && <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />}
               </div>
               
-              {/* Ticker del último log */}
               <div className="flex-1 overflow-hidden">
-                <p className={`text-[11px] font-mono font-bold truncate ${scraping ? 'text-emerald-400/90' : 'text-slate-500'}`}>
+                <p className={`text-[11px] font-mono font-bold truncate ${scraping ? 'text-primary/90' : 'text-slate-500'}`}>
                   {scraping ? '> ' : ''}{lastLog}
                 </p>
               </div>
 
-              {/* Botón expandir sutil */}
               <button
                 onClick={() => setShowConsole(!showConsole)}
                 className={`p-2 rounded-xl transition-all ${
@@ -168,12 +225,12 @@ const ScraperControls = ({
             </div>
           </div>
 
-          {/* Botón Principal */}
+          {/* Botón Principal con Efecto de Carga Premium */}
           <button
-            onClick={scraping ? detenerScraper : iniciarScraper}
+            onClick={scraping ? detenerScraper : handleStartScraper}
             disabled={!serverOnline}
             className={`group relative overflow-hidden w-full h-16 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all ${
-              scraping ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-200' :
+              scraping ? 'bg-slate-900 text-white' :
               !serverOnline ? 'bg-slate-100 text-slate-300 cursor-not-allowed' :
               'bg-slate-900 text-white hover:bg-primary shadow-xl shadow-slate-200 hover:shadow-primary/30 active:scale-[0.98]'
             }`}
@@ -181,12 +238,13 @@ const ScraperControls = ({
             <div className="flex items-center justify-center gap-3 relative z-10">
               {scraping ? (
                 <>
-                  <div className="flex gap-1">
-                    <span className="w-1 h-1 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1 h-1 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1 h-1 bg-white rounded-full animate-bounce"></span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-3 w-3 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    <span className="animate-pulse">Analizando Mercado...</span>
                   </div>
-                  Detener Extracción
                 </>
               ) : (
                 <>
@@ -195,8 +253,20 @@ const ScraperControls = ({
                 </>
               )}
             </div>
+            
+            {/* Animación de escaneo láser cuando está activo */}
+            {scraping && (
+              <div className="absolute inset-0 bg-slate-900">
+                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_15px_#3b82f6] animate-scan-line"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-full bg-gradient-to-b from-primary/5 via-transparent to-primary/5 animate-pulse"></div>
+                </div>
+              </div>
+            )}
+            
             {/* Efecto de brillo al hover */}
-            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+            {!scraping && <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />}
           </button>
         </div>
       </div>

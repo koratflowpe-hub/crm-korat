@@ -10,7 +10,7 @@ export const useScraper = () => {
     setScraperLogs(["Iniciando extracción en la nube de Netlify..."]);
     
     try {
-      const res = await fetch(`/.netlify/functions/scrape`, {
+      const res = await fetch(import.meta.env.VITE_SCRAPER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)
@@ -19,13 +19,15 @@ export const useScraper = () => {
       const data = await res.json();
       
       if (res.ok) {
-        setScraperLogs(prev => [...prev, ...data.logs, `¡Éxito! Leads insertados: ${data.insertados}`]);
+        // n8n no devuelve 'logs' por defecto, así que creamos una respuesta amigable
+        const logs = Array.isArray(data.logs) ? data.logs : ["Proceso iniciado con éxito en n8n Cloud."];
+        setScraperLogs(prev => [...prev, ...logs, "Los leads aparecerán en el CRM conforme se procesen."]);
         if (onFinish) onFinish();
       } else {
-        setScraperLogs(prev => [...prev, `Error: ${data.error || 'Fallo en la extracción'}`]);
+        setScraperLogs(prev => [...prev, `Error: ${data.error || 'Fallo en la comunicación con n8n'}`]);
       }
     } catch (err) {
-      setScraperLogs(prev => [...prev, "Error de conexión con Netlify Functions."]);
+      setScraperLogs(prev => [...prev, "Error de conexión con el servidor de n8n."]);
     } finally {
       setScraping(false);
     }

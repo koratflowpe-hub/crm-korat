@@ -1,0 +1,88 @@
+{
+  "name": "KoratFlow Scraper Cloud",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "koratflow-lead-ia",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "b2de3d51-3444-48f0-b8c1-1e967a57a553",
+      "name": "Webhook CRM",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "webhookId": "koratflow-lead-ia"
+    },
+    {
+      "parameters": {
+        "jsCode": "const params = $input.item.json.body || {};\nconst ubicacion = params.ubicacion || '';\nconst palabrasClavesRaw = params.palabrasClaves || 'salon de belleza';\nconst lat = parseFloat(params.lat);\nconst lng = parseFloat(params.lng);\nconst radius = parseInt(params.radius) || 5000;\nconst limit = parseInt(params.limit) || 15;\nconst pureKeywordsRaw = params.pureKeywords || 'salon,belleza';\n\nfunction normalizeStr(str) {\n  return (str || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\n}\nconst strictKeywords = pureKeywordsRaw.split(',').map(t => normalizeStr(t.trim())).filter(t => t.length > 0);\n\n// Claves de la API (Puedes usar las de tu .env de React)\nconst GOOGLE_KEY = 'AIzaSyB7M7AtB5rJ4uNoIKo356_1bPeaP-8iAl8';\nconst SERPER_KEY = '4e6865059bd96ab759aff3cc5c151b10e0ab6966';\nconst EVO_URL = 'https://evo.koratflow.agency';\nconst EVO_INST = 'KoratFlow';\nconst EVO_KEY = '2C8CB56FF12E-44C0-8002-73BF0A2879AA';\n\nconst query = `${palabrasClavesRaw.split(',')[0]} en ${ubicacion}`;\nconst googleUrl = 'https://places.googleapis.com/v1/places:searchText';\nconst googleBody = {\n  textQuery: query,\n  languageCode: 'es',\n  locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: radius } }\n};\n\nconst placesRes = await fetch(googleUrl, {\n  method: 'POST', // Usar POST para places:searchText\n  headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.businessStatus,places.primaryType,places.websiteUri' },\n  body: JSON.stringify(googleBody)\n});\nconst placesData = await placesRes.json();\nconst places = placesData.places || [];\n\nlet validLeads = [];\nfor (const place of places) {\n  if (validLeads.length >= limit) break;\n  if (!place.nationalPhoneNumber) continue;\n  \n  const name = normalizeStr(place.displayName?.text);\n  const primaryType = normalizeStr(place.primaryType);\n  let isValid = false;\n  for (const term of strictKeywords) {\n    if (name.includes(term) || primaryType.includes(term)) { isValid = true; break; }\n  }\n  if (!isValid) continue;\n  \n  let telefono = place.nationalPhoneNumber.replace(/\\s/g, '');\n  let cleanPhone = telefono.replace(/\\D/g, '');\n  if (cleanPhone.length === 9 && cleanPhone.startsWith('9')) cleanPhone = '51' + cleanPhone;\n  \n  let hasWA = true;\n  if (EVO_URL && EVO_KEY) {\n    try {\n      const waRes = await fetch(`${EVO_URL}/chat/whatsappNumbers/${encodeURIComponent(EVO_INST)}`, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },\n        body: JSON.stringify({ numbers: [cleanPhone] })\n      });\n      const waData = await waRes.json();\n      if (Array.isArray(waData) && waData.length > 0 && !waData[0].exists) hasWA = false;\n    } catch(e) {}\n  }\n  if (!hasWA) continue;\n  \n  let url_instagram = null, url_facebook = null;\n  let info_rrss_text = '';\n  if (SERPER_KEY) {\n    try {\n      const serperRes = await fetch('https://google.serper.dev/search', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'X-API-KEY': SERPER_KEY },\n        body: JSON.stringify({ q: `${place.displayName?.text} ${ubicacion}`, gl: 'pe', hl: 'es', num: 5 })\n      });\n      const serperData = await serperRes.json();\n      (serperData.organic || []).forEach(res => {\n         info_rrss_text += `[${res.title}] ${res.snippet}\\n\\n`;\n         const lcUrl = res.link.toLowerCase();\n         if (lcUrl.includes('instagram.com') && !url_instagram) url_instagram = res.link;\n         if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !url_facebook) url_facebook = res.link;\n      });\n    } catch(e) {}\n  }\n  \n  validLeads.push({\n    nombre_salon: place.displayName?.text || 'Desconocido',\n    direccion: place.formattedAddress || 'Sin dirección',\n    telefono: telefono,\n    calificacion: place.rating || 0,\n    total_resenas: place.userRatingCount || 0,\n    sitioweb: place.websiteUri || null,\n    url_instagram: url_instagram,\n    url_facebook: url_facebook,\n    estado_contacto: 'Pendiente Análisis IA',\n    servicios_detectados: info_rrss_text\n  });\n}\n\nreturn validLeads.map(lead => ({ json: lead }));"
+      },
+      "id": "d842ecb9-5094-469d-8386-b4bc48b30f80",
+      "name": "Scraper Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salon",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "tu_anon_key_aqui"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nombre_salon\": \"{{ $json.nombre_salon }}\",\n  \"direccion\": \"{{ $json.direccion }}\",\n  \"telefono\": \"{{ $json.telefono }}\",\n  \"calificacion\": {{ $json.calificacion }},\n  \"total_resenas\": {{ $json.total_resenas }},\n  \"sitioweb\": \"{{ $json.sitioweb }}\",\n  \"url_instagram\": \"{{ $json.url_instagram }}\",\n  \"url_facebook\": \"{{ $json.url_facebook }}\",\n  \"estado_contacto\": \"{{ $json.estado_contacto }}\",\n  \"servicios_detectados\": \"{{ $json.servicios_detectados }}\"\n}",
+        "options": {}
+      },
+      "id": "d7a22df4-7ea9-4c59-bd76-bd761a2db12a",
+      "name": "Supabase Upsert HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [700, 300],
+      "credentials": {
+        "headerAuth": {
+          "id": "tu_id_de_credencial_si_usaras_n8n",
+          "name": "Supabase Auth"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook CRM": {
+      "main": [
+        [
+          {
+            "node": "Scraper Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scraper Engine": {
+      "main": [
+        [
+          {
+            "node": "Supabase Upsert HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

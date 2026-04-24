@@ -211,7 +211,7 @@ export default function CRM() {
           scraping={scraping} scraperLogs={scraperLogs}
           setScraperLogs={setScraperLogs}
           serverOnline={serverOnline}
-          iniciarScraper={() => iniciarScraper({ lat, lng, radius, limit, pureKeywords, testMode }, refetchLeads)}
+          iniciarScraper={(params) => iniciarScraper(params, refetchLeads)}
           detenerScraper={detenerScraper}
         />
 
