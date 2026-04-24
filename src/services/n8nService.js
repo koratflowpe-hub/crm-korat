@@ -8,8 +8,9 @@
 // You can set this in your environment variables, e.g., VITE_N8N_WEBHOOK_URL
 // For now, we fallback to a default configurable URL.
 // Usamos una ruta relativa para pasar por el proxy configurado y evitar CORS
-// Usamos el rewrite de Vercel para evitar CORS. El destino real es https://hooks.koratflow.agency
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || '/api/n8n/webhook/koratflow-evolution';
+// Usamos SIEMPRE la ruta relativa para evitar CORS y esquivar variables de entorno erróneas (ej. .netlify)
+// El destino real es resuelto por vercel.json (producción) y vite.config.js (local)
+const N8N_WEBHOOK_URL = '/api/n8n/webhook/koratflow-evolution';
 
 export const n8nService = {
   /**

@@ -12,14 +12,9 @@ export const useScraper = () => {
     setScraping(true);
     setScraperLogs(["Iniciando extracción en la nube de n8n..."]);
     
-    // Usamos el rewrite de Vercel en producción para evitar errores de CORS
-    // Si no está definido, usamos la ruta relativa que maneja vercel.json
-    let scraperUrl = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
-    
-    // Defensa: Si Vercel tiene un .env viejo con localhost, lo forzamos a usar la ruta relativa en prod
-    if (window.location.hostname !== 'localhost' && scraperUrl.includes('localhost')) {
-      scraperUrl = '/api/scraper';
-    }
+    // Usamos SIEMPRE la ruta relativa. Esto garantiza que pase por el proxy de Vite en local
+    // y por los rewrites de vercel.json en producción, ignorando cualquier variable de entorno vieja.
+    const scraperUrl = '/api/scraper';
     
     console.log("🚀 Enviando petición de scraping a:", scraperUrl);
 
