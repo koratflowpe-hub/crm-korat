@@ -12,8 +12,14 @@ export const useScraper = () => {
     setScraping(true);
     setScraperLogs(["Iniciando extracción en la nube de n8n..."]);
     
+    // Usamos el rewrite de Vercel en producción para evitar errores de CORS
+    // Si no está definido, usamos la ruta relativa que maneja vercel.json
+    const scraperUrl = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
+    
+    console.log("🚀 Enviando petición de scraping a:", scraperUrl);
+
     try {
-      const res = await fetch(import.meta.env.VITE_SCRAPER_URL, {
+      const res = await fetch(scraperUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)

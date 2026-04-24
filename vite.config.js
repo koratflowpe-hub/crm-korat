@@ -70,6 +70,11 @@ export default defineConfig({
         target: 'https://hooks.koratflow.agency',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/n8n/, '')
+      },
+      '/api/scraper': {
+        target: 'https://hooks.koratflow.agency/webhook/koratflow-lead-ia',
+        changeOrigin: true,
+        rewrite: () => ''
       }
     }
   }

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/n8n/:path*",
+      "destination": "https://hooks.koratflow.agency/:path*"
+    },
+    {
+      "source": "/api/scraper",
+      "destination": "https://hooks.koratflow.agency/webhook/koratflow-lead-ia"
+    }
+  ]
+}
