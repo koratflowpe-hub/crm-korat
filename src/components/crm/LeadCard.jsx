@@ -4,7 +4,7 @@ import {
   Trash2, Phone, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings, PlayCircle
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from '../icons/SocialIcons';
-import { getStatusColor, getTagStyle, formatWa, ESTADOS } from '../../utils/crmHelpers';
+import { getStatusColor, getTagStyle, formatWa, ESTADOS, getTemplateRating } from '../../utils/crmHelpers';
 import { useTemplates } from '../../hooks/useTemplates';
 import { n8nService } from '../../services/n8nService';
 
@@ -403,7 +403,7 @@ const LeadCard = ({
                   >
                     <option value="">📚 Biblioteca</option>
                     {templates.filter(t => t.etapa === 'apertura').map(t => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                      <option key={t.id} value={t.id}>{getTemplateRating(t.sent_count, t.success_count)} {t.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -443,7 +443,7 @@ const LeadCard = ({
                   >
                     <option value="">📚 Biblioteca</option>
                     {templates.filter(t => t.etapa === 'activador').map(t => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                      <option key={t.id} value={t.id}>{getTemplateRating(t.sent_count, t.success_count)} {t.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -483,7 +483,7 @@ const LeadCard = ({
                   >
                     <option value="">📚 Biblioteca</option>
                     {templates.filter(t => t.etapa === 'video_pilar').map(t => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                      <option key={t.id} value={t.id}>{getTemplateRating(t.sent_count, t.success_count)} {t.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -523,7 +523,7 @@ const LeadCard = ({
                   >
                     <option value="">📚 Biblioteca</option>
                     {templates.filter(t => t.etapa === 'cierre').map(t => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                      <option key={t.id} value={t.id}>{getTemplateRating(t.sent_count, t.success_count)} {t.nombre}</option>
                     ))}
                   </select>
                 </div>

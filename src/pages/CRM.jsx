@@ -125,7 +125,8 @@ export default function CRM() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-primary/20">
       
-      {/* Navegación Refactorizada */}
+      {/* Navegación — se oculta cuando la biblioteca está abierta */}
+      {!isLibraryModalOpen && (
       <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm">
           <div className="max-w-[1600px] mx-auto px-6 h-20 flex items-center justify-between">
              <div className="flex items-center gap-8">
@@ -196,6 +197,7 @@ export default function CRM() {
              </div>
           </div>
       </nav>
+      )}
 
       <main className="max-w-[1600px] mx-auto px-6 py-12">
         

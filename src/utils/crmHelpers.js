@@ -50,3 +50,13 @@ export const formatWa = (phone) => {
     if (clean.startsWith('00')) clean = clean.substring(2);
     return clean;
 };
+
+export const getTemplateRating = (sent, success) => {
+    if (!sent || sent === 0) return '☆☆☆☆☆';
+    const rate = (success / sent) * 100;
+    if (rate >= 40) return '⭐⭐⭐⭐⭐';
+    if (rate >= 25) return '⭐⭐⭐⭐';
+    if (rate >= 15) return '⭐⭐⭐';
+    if (rate >= 5) return '⭐⭐';
+    return '⭐';
+};
