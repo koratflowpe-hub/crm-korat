@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Database, PlayCircle } from 'lucide-react';
+import { Plus, Package, Database, PlayCircle, Menu, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Hooks
@@ -32,6 +32,7 @@ export default function CRM() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false); // Puede ser boolean o string (tab name)
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Lead states para modales
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
@@ -127,23 +128,30 @@ export default function CRM() {
       
       {/* Navegación — se oculta cuando la biblioteca está abierta */}
       {!isLibraryModalOpen && (
-      <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm">
-          <div className="max-w-[1600px] mx-auto px-6 h-20 flex items-center justify-between">
-             <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
-                    <Package size={20} strokeWidth={2.5}/>
+      <>
+        <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
+                    <Package size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5}/>
                   </div>
-                  <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                  <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
                      Korat<span className="text-primary italic">Flow</span>
                   </h1>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  <div className="hidden sm:block h-4 w-px bg-slate-200" />
+               </div>
                   
+               {/* Mobile Menu Toggle */}
+               <button 
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="xl:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors active:scale-95"
+               >
+                  {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+               </button>
+
+               {/* Desktop Nav Items */}
+               <div className="hidden xl:flex items-center gap-8">
                   {/* Status Group */}
-                  <div className="flex items-center gap-4 lg:gap-8">
+                  <div className="flex items-center gap-8">
                      {/* Server Status */}
                      <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Server</span>
@@ -153,7 +161,7 @@ export default function CRM() {
                         </div>
                      </div>
 
-                     <div className="h-8 w-px bg-slate-100 hidden sm:block" />
+                     <div className="h-8 w-px bg-slate-100" />
 
                      {/* Test Mode Toggle */}
                      <div className="flex flex-col">
@@ -166,37 +174,93 @@ export default function CRM() {
                            <div className={`relative w-9 h-5 rounded-full transition-all duration-300 ${testMode ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-slate-200'}`}>
                               <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform duration-300 shadow-sm ${testMode ? 'translate-x-4' : 'translate-x-0'}`} />
                            </div>
-                           <span className={`text-[9px] font-extrabold uppercase transition-colors hidden sm:block ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
+                           <span className={`text-[9px] font-extrabold uppercase transition-colors ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
                               {testMode ? 'Sandbox' : 'Live'}
                            </span>
                         </button>
                      </div>
                   </div>
-                </div>
-             </div>
-             
-             <div className="flex items-center gap-3">
-               <button 
-                 onClick={() => setIsDemoModalOpen(true)} 
-                 className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-100 active:scale-95"
-               >
-                 <PlayCircle size={16} /> <span>Modo Demo</span>
-               </button>
-               <button 
-                 onClick={() => setIsLibraryModalOpen(true)} 
-                 className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
-               >
-                 <Database size={16} /> <span>Biblioteca de Mensajes</span>
-               </button>
-               <button 
-                 onClick={() => setIsModalOpen(true)} 
-                 className="flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-slate-200 active:scale-95"
-               >
-                 <Plus size={16} /> <span>Nuevo Registro</span>
-               </button>
-             </div>
+               
+                 <div className="flex items-center gap-3">
+                   <button 
+                     onClick={() => setIsDemoModalOpen(true)} 
+                     className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-100 active:scale-95"
+                   >
+                     <PlayCircle size={16} /> <span>Modo Demo</span>
+                   </button>
+                   <button 
+                     onClick={() => setIsLibraryModalOpen(true)} 
+                     className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
+                   >
+                     <Database size={16} /> <span>Biblioteca de Mensajes</span>
+                   </button>
+                   <button 
+                     onClick={() => setIsModalOpen(true)} 
+                     className="flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-slate-200 active:scale-95"
+                   >
+                     <Plus size={16} /> <span>Nuevo Registro</span>
+                   </button>
+                 </div>
+               </div>
+            </div>
+        </nav>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="xl:hidden fixed top-16 sm:top-20 inset-x-0 bottom-0 z-[90] bg-white/95 backdrop-blur-xl border-t border-slate-100 p-6 flex flex-col gap-6 overflow-y-auto shadow-2xl">
+              <div className="flex flex-col gap-4">
+                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Sistema</h3>
+                 <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
+                    <span className="text-sm font-bold text-slate-700">Estado del Servidor</span>
+                    <div className="flex items-center gap-2">
+                       <div className={`w-2.5 h-2.5 rounded-full ${serverOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                       <span className="text-[11px] font-black text-slate-600 uppercase tracking-tight">{serverOnline ? 'Online' : 'Offline'}</span>
+                    </div>
+                 </div>
+                 
+                 <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
+                    <span className="text-sm font-bold text-slate-700">Entorno</span>
+                    <button 
+                      onClick={() => setTestMode(!testMode)} 
+                      className="flex items-center gap-2 group transition-all"
+                    >
+                       <div className={`relative w-12 h-7 rounded-full transition-all duration-300 ${testMode ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-slate-200'}`}>
+                          <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm ${testMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                       </div>
+                       <span className={`text-[11px] font-extrabold uppercase transition-colors ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
+                          {testMode ? 'Sandbox' : 'Live'}
+                       </span>
+                    </button>
+                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4 mt-2">
+                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acciones</h3>
+                 <button 
+                   onClick={() => { setIsModalOpen(true); setIsMobileMenuOpen(false); }} 
+                   className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white hover:bg-slate-800 p-4 rounded-2xl font-black text-sm transition-all shadow-lg shadow-slate-200 active:scale-95"
+                 >
+                   <Plus size={20} /> <span>Nuevo Registro</span>
+                 </button>
+                 
+                 <div className="grid grid-cols-2 gap-3">
+                   <button 
+                     onClick={() => { setIsLibraryModalOpen(true); setIsMobileMenuOpen(false); }} 
+                     className="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-4 rounded-2xl font-bold text-sm transition-all active:scale-95 border border-indigo-100"
+                   >
+                     <Database size={18} /> <span>Scripts</span>
+                   </button>
+                   <button 
+                     onClick={() => { setIsDemoModalOpen(true); setIsMobileMenuOpen(false); }} 
+                     className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 p-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
+                   >
+                     <PlayCircle size={18} /> <span>Demo</span>
+                   </button>
+                 </div>
+              </div>
           </div>
-      </nav>
+        )}
+      </>
       )}
 
       <main className="max-w-[1600px] mx-auto px-6 py-12">

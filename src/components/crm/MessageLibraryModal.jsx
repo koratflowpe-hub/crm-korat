@@ -273,20 +273,11 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
 
           {/* ── PANEL 3: Editor (step 3 on mobile) ── */}
           <div className={`
-            flex-1 overflow-y-auto bg-white
+            flex-1 overflow-hidden bg-white
             ${mobileView !== 'editor' ? 'hidden sm:flex sm:flex-col' : 'flex flex-col'}
-            p-6 sm:p-10 lg:p-16 gap-6 max-w-4xl w-full mx-auto
           `}>
-            {/* Editor header */}
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-2xl ${editingId ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                {editingId ? <Edit3 size={20} /> : <Plus size={20} />}
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-900">{editingId ? 'Editar Plantilla' : 'Nueva Plantilla'}</h3>
-                <p className="text-xs text-slate-400">Toca los campos para editar</p>
-              </div>
-            </div>
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-6 sm:p-10 lg:p-16 flex flex-col gap-6 max-w-4xl w-full mx-auto">
 
             {/* Nombre */}
             <div>
@@ -320,7 +311,7 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
             </div>
 
             {/* Mensaje */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-col">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Contenido del Mensaje</label>
                 <div className="flex gap-1.5">
@@ -338,15 +329,15 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
               <textarea
                 value={formData.contenido}
                 onChange={e => setFormData({ ...formData, contenido: e.target.value })}
-                className="w-full flex-1 text-lg leading-relaxed font-medium p-6 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all resize-none bg-slate-50/30"
-                style={{ minHeight: '300px' }}
+                className="w-full text-lg leading-relaxed font-medium p-6 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all resize-none bg-slate-50/30"
+                style={{ minHeight: '260px' }}
                 placeholder="Escribe el mensaje aquí... ✨&#10;&#10;Usa emojis y saltos de línea para hacerlo más legible."
               />
               <p className="text-right text-[10px] text-slate-300 font-bold mt-1">{formData.contenido.length} caracteres</p>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-2 pb-safe">
+            {/* Desktop-only action buttons (inside scroll area) */}
+            <div className="hidden sm:flex gap-3 pt-2">
               {editingId && (
                 <button
                   onClick={cancelEdit}
@@ -365,16 +356,45 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
                 {saved ? <><Check size={20} /> ¡Guardado!</> : <><Save size={20} /> {editingId ? 'Guardar Cambios' : 'Crear Script'}</>}
               </button>
             </div>
+
+            </div>{/* end scrollable */}
           </div>
 
         </div>
 
-        {/* ── MOBILE bottom nav indicator ── */}
+        {/* ── EDITOR: Scrollable content + pinned actions footer ── */}
+        {/* Rendered outside the 3-col flex so it can overlay properly on mobile */}
+
+        {/* ── MOBILE bottom nav indicator (step dots) ── */}
         <div className="flex-none sm:hidden flex justify-center gap-2 py-4 bg-white border-t border-slate-100">
           {['categories', 'list', 'editor'].map((step) => (
             <div key={step} className={`h-1.5 rounded-full transition-all ${mobileView === step ? 'w-6 bg-indigo-600' : 'w-1.5 bg-slate-200'}`} />
           ))}
         </div>
+
+        {/* ── MOBILE: Pinned action buttons (always above bottom nav) ── */}
+        {mobileView === 'editor' && (
+          <div className="flex-none sm:hidden flex gap-3 px-5 pt-3 pb-5 bg-white border-t border-slate-100"
+               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
+            {editingId && (
+              <button
+                onClick={cancelEdit}
+                className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 text-base font-black rounded-2xl transition-all active:scale-95"
+              >
+                Cancelar
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={!formData.nombre.trim() || !formData.contenido.trim()}
+              className={`flex-[2] flex items-center justify-center gap-2.5 py-4 text-white text-base font-black rounded-2xl transition-all shadow-lg active:scale-95 disabled:opacity-40 ${
+                saved ? 'bg-emerald-500 shadow-emerald-100' : editingId ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
+              }`}
+            >
+              {saved ? <><Check size={20} /> ¡Guardado!</> : <><Save size={20} /> {editingId ? 'Guardar Cambios' : 'Crear Script'}</>}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
