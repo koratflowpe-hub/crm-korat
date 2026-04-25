@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageCircle, MapPin, Globe, Flame, Edit3, Send, Activity,
-  Trash2, Phone, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings, PlayCircle
+  Trash2, Phone, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings, PlayCircle, Rocket, Clock
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from '../icons/SocialIcons';
 import { getStatusColor, getTagStyle, formatWa, ESTADOS, getTemplateRating } from '../../utils/crmHelpers';
 import { useTemplates } from '../../hooks/useTemplates';
 import { n8nService } from '../../services/n8nService';
+import { useAutomation } from '../../hooks/useAutomation';
 
 const LeadCard = ({ 
   lead, 
@@ -24,7 +25,14 @@ const LeadCard = ({
   setIsLibraryModalOpen,
   updateLead
 }) => {
+  const { stageForSending, unstage } = useAutomation();
+  const [stagingTab, setStagingTab] = useState(null); // which tab is being staged
   const { templates, incrementSentCount, incrementSuccessCount } = useTemplates();
+
+  // Automation status badge
+  const automationStatus = lead.automation_status || 'idle';
+  const isStaged = automationStatus === 'staged';
+  const isQueued = automationStatus === 'queued';
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -134,6 +142,31 @@ const LeadCard = ({
     }
   };
 
+  const handleStageForSending = async (tipo) => {
+    let content = '';
+    if (tipo === 'apertura') content = localApertura;
+    else if (tipo === 'activador') content = localActivador;
+    else if (tipo === 'video') content = localVideo;
+    else if (tipo === 'cierre') content = localCierre;
+
+    if (!content) {
+      alert(`Escribe el mensaje de ${tipo} antes de prepararlo.`);
+      return;
+    }
+    setStagingTab(tipo);
+    try {
+      await stageForSending(lead.id, content, tipo);
+      setTimeout(() => setStagingTab(null), 1500);
+    } catch (e) {
+      setStagingTab(null);
+      alert('Error al preparar: ' + e.message);
+    }
+  };
+
+  const handleUnstage = async () => {
+    await unstage(lead.id);
+  };
+
   const handleCopy = (text, tabName) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -211,12 +244,26 @@ const LeadCard = ({
   const statusColor = getStatusColor(lead.estado_contacto);
 
   return (
-    <div className={`h-fit group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300 ${isExpanded ? 'ring-2 ring-primary/5' : ''}`}>
+    <div className={`h-fit group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300 ${
+      isStaged ? 'ring-2 ring-amber-400/30 border-amber-200' :
+      isQueued ? 'ring-2 ring-primary/30 border-primary/20' :
+      isExpanded ? 'ring-2 ring-primary/5' : ''
+    }`}>
       
       {/* Progress Bar */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100 rounded-t-2xl overflow-hidden">
         <div className={`h-full ${lead.estado_contacto === 'No Interesado' ? 'bg-rose-500' : 'bg-emerald-500'} transition-all duration-500`} style={{ width: `${getProgress()}%` }} />
       </div>
+
+      {/* Automation Status Badge */}
+      {(isStaged || isQueued) && (
+        <div className={`absolute top-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+          isQueued ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'bg-amber-400 text-white shadow-sm shadow-amber-200'
+        }`}>
+          {isQueued ? <Clock size={9} /> : <Rocket size={9} />}
+          {isQueued ? 'En Cola' : 'Listo'}
+        </div>
+      )}
 
       {/* Menú de Opciones */}
       <div className="absolute top-4 right-4 z-10" ref={actionsRef}>
@@ -415,14 +462,29 @@ const LeadCard = ({
                   onBlur={() => updateMensajeApertura(lead.id, localApertura)}
                   placeholder="Mensaje de apertura..."
                 />
-                <button
-                  onClick={() => handleSendFlow('apertura')}
-                  disabled={isSendingFlow === 'apertura'}
-                  className="w-full py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {isSendingFlow === 'apertura' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
-                  {isSendingFlow === 'apertura' ? 'Enviando...' : 'Enviar Apertura'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSendFlow('apertura')}
+                    disabled={isSendingFlow === 'apertura'}
+                    className="flex-1 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    {isSendingFlow === 'apertura' ? <span className="animate-spin">⏳</span> : <Send size={11} />}
+                    {isSendingFlow === 'apertura' ? 'Enviando...' : 'Enviar'}
+                  </button>
+                  <button
+                    onClick={() => handleStageForSending('apertura')}
+                    disabled={stagingTab === 'apertura'}
+                    className={`py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 border ${
+                      isStaged && lead.staged_etapa === 'apertura'
+                        ? 'bg-amber-400 text-white border-amber-400'
+                        : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                    }`}
+                    title="Preparar para envío automático"
+                  >
+                    {stagingTab === 'apertura' ? <span className="animate-spin text-[10px]">⏳</span> : <Rocket size={11} />}
+                    {stagingTab === 'apertura' ? '' : isStaged && lead.staged_etapa === 'apertura' ? '✓' : ''}
+                  </button>
+                </div>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => handleFeedback('apertura', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
                   <button onClick={() => handleFeedback('apertura', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
@@ -455,14 +517,28 @@ const LeadCard = ({
                   onBlur={() => updateMensajeActivador(lead.id, localActivador)}
                   placeholder="Mensaje activador..."
                 />
-                <button
-                  onClick={() => handleSendFlow('activador')}
-                  disabled={isSendingFlow === 'activador'}
-                  className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {isSendingFlow === 'activador' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
-                  {isSendingFlow === 'activador' ? 'Enviando...' : 'Enviar Activador'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSendFlow('activador')}
+                    disabled={isSendingFlow === 'activador'}
+                    className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    {isSendingFlow === 'activador' ? <span className="animate-spin">⏳</span> : <Send size={11} />}
+                    {isSendingFlow === 'activador' ? 'Enviando...' : 'Enviar'}
+                  </button>
+                  <button
+                    onClick={() => handleStageForSending('activador')}
+                    disabled={stagingTab === 'activador'}
+                    className={`py-2 px-3 rounded-lg text-[10px] font-black transition-all active:scale-95 flex items-center gap-1.5 border ${
+                      isStaged && lead.staged_etapa === 'activador'
+                        ? 'bg-amber-400 text-white border-amber-400'
+                        : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                    }`}
+                    title="Preparar para envío automático"
+                  >
+                    {stagingTab === 'activador' ? <span className="animate-spin text-[10px]">⏳</span> : <Rocket size={11} />}
+                  </button>
+                </div>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => handleFeedback('activador', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
                   <button onClick={() => handleFeedback('activador', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
@@ -495,14 +571,19 @@ const LeadCard = ({
                   onBlur={() => updateMensajeVideo(lead.id, localVideo)}
                   placeholder="Mensaje con video pilar..."
                 />
-                <button
-                  onClick={() => handleSendFlow('video')}
-                  disabled={isSendingFlow === 'video'}
-                  className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {isSendingFlow === 'video' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
-                  {isSendingFlow === 'video' ? 'Enviando...' : 'Enviar Video'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSendFlow('video')}
+                    disabled={isSendingFlow === 'video'}
+                    className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    {isSendingFlow === 'video' ? <span className="animate-spin">⏳</span> : <Send size={11} />}
+                    {isSendingFlow === 'video' ? 'Enviando...' : 'Enviar'}
+                  </button>
+                  <div className="py-2 px-3 rounded-lg text-[9px] font-black bg-slate-100 text-slate-400 border border-slate-200 flex items-center gap-1">
+                    <Activity size={10} /> MANUAL
+                  </div>
+                </div>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => handleFeedback('video', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
                   <button onClick={() => handleFeedback('video', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
@@ -535,14 +616,28 @@ const LeadCard = ({
                   onBlur={() => updateMensajeCierre(lead.id, localCierre)}
                   placeholder="Mensaje de cierre final..."
                 />
-                <button
-                  onClick={() => handleSendFlow('cierre')}
-                  disabled={isSendingFlow === 'cierre'}
-                  className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {isSendingFlow === 'cierre' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
-                  {isSendingFlow === 'cierre' ? 'Enviando...' : 'Enviar Cierre'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSendFlow('cierre')}
+                    disabled={isSendingFlow === 'cierre'}
+                    className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    {isSendingFlow === 'cierre' ? <span className="animate-spin">⏳</span> : <Send size={11} />}
+                    {isSendingFlow === 'cierre' ? 'Enviando...' : 'Enviar'}
+                  </button>
+                  <button
+                    onClick={() => handleStageForSending('cierre')}
+                    disabled={stagingTab === 'cierre'}
+                    className={`py-2 px-3 rounded-lg text-[10px] font-black transition-all active:scale-95 flex items-center gap-1.5 border ${
+                      isStaged && lead.staged_etapa === 'cierre'
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+                    }`}
+                    title="Preparar para envío automático"
+                  >
+                    {stagingTab === 'cierre' ? <span className="animate-spin text-[10px]">⏳</span> : <Rocket size={11} />}
+                  </button>
+                </div>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => handleFeedback('cierre', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
                   <button onClick={() => handleFeedback('cierre', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>

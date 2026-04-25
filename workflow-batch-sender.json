@@ -1,0 +1,212 @@
+{
+  "name": "KoratFlow — Batch Sender (Ritmo de Salón)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lanzar-despacho",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Lanzar Despacho",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 8-9,14-15,19-20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-efficient",
+      "name": "Cron — Ventanas Inteligentes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 400],
+      "notesInFlow": true,
+      "notes": "Solo corre cada 5 min durante: 8-10h, 14-16h, 19-21h. Eficiencia máxima."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "{{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_ANON_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "automation_status", "value": "eq.queued" },
+            { "name": "scheduled_at", "value": "lte.{{ $now.toISO() }}" },
+            { "name": "select", "value": "id,nombre_salon,telefono,staged_message,staged_etapa" },
+            { "name": "limit", "value": "10" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-queued",
+      "name": "Obtener Mensajes en Cola",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-has-messages",
+      "name": "¿Hay mensajes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-leads",
+      "name": "Split Leads",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean phone number for Evolution API\nconst lead = $input.item.json;\nconst cleanPhone = (lead.telefono || '').replace(/\\D/g, '');\nconst phone = cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone;\n\nreturn { json: { ...lead, cleanPhone: phone } };"
+      },
+      "id": "clean-phone",
+      "name": "Limpiar Teléfono",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evo.koratflow.agency/message/sendText/KoratFlow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "2C8CB56FF12E-44C0-8002-73BF0A2879AA" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.cleanPhone }}\",\n  \"text\": \"{{ $json.staged_message }}\"\n}",
+        "options": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?id=eq.{{ $('Split Leads').item.json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "{{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"automation_status\": \"sent\",\n  \"enviado_at\": \"{{ $now.toISO() }}\",\n  \"estado_contacto\": \"Apertura Enviado\"\n}",
+        "options": {}
+      },
+      "id": "update-sent",
+      "name": "Marcar como Enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?id=eq.{{ $('Split Leads').item.json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "{{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"automation_status\": \"failed\",\n  \"intentos_fallidos\": 1\n}",
+        "options": {}
+      },
+      "id": "update-failed",
+      "name": "Marcar como Fallido",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1200, 400]
+    }
+  ],
+  "connections": {
+    "Webhook — Lanzar Despacho": {
+      "main": [[{ "node": "Obtener Mensajes en Cola", "type": "main", "index": 0 }]]
+    },
+    "Cron — Ventanas Inteligentes": {
+      "main": [[{ "node": "Obtener Mensajes en Cola", "type": "main", "index": 0 }]]
+    },
+    "Obtener Mensajes en Cola": {
+      "main": [[{ "node": "¿Hay mensajes?", "type": "main", "index": 0 }]]
+    },
+    "¿Hay mensajes?": {
+      "main": [
+        [{ "node": "Split Leads", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Split Leads": {
+      "main": [[{ "node": "Limpiar Teléfono", "type": "main", "index": 0 }]]
+    },
+    "Limpiar Teléfono": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [{ "node": "Marcar como Enviado", "type": "main", "index": 0 }],
+        [{ "node": "Marcar como Fallido", "type": "main", "index": 0 }]
+      ]
+    },
+    "Marcar como Enviado": {
+      "main": [[{ "node": "Split Leads", "type": "main", "index": 0 }]]
+    },
+    "Marcar como Fallido": {
+      "main": [[{ "node": "Split Leads", "type": "main", "index": 0 }]]
+    }
+  },
+  "_meta": {
+    "description": "Cron every 5 min: queries queued leads whose scheduled_at <= now, sends via Evolution API, marks as sent/failed. Loops until all batch leads are processed.",
+    "antibanNotes": "Irregular pauses are pre-calculated at schedule time (in useAutomation.js distributeSlots). This workflow simply fires at the right moment."
+  }
+}

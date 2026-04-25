@@ -10,6 +10,7 @@ import { useScraper } from '../hooks/useScraper';
 import KPIDashboard from '../components/crm/KPIDashboard';
 import ScraperControls from '../components/crm/ScraperControls';
 import LeadList from '../components/crm/LeadList';
+import AutomationHub from '../components/crm/AutomationHub';
 import { CreateLeadModal, EditLeadModal, DeleteLeadModal } from '../components/crm/Modals';
 import MessageLibraryModal from '../components/crm/MessageLibraryModal';
 import LiveDemoModal from '../components/crm/LiveDemoModal';
@@ -30,9 +31,10 @@ export default function CRM() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false); // Puede ser boolean o string (tab name)
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('leads'); // 'leads' | 'automation'
   
   // Lead states para modales
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
@@ -129,7 +131,9 @@ export default function CRM() {
       {/* Navegación — se oculta cuando la biblioteca está abierta */}
       {!isLibraryModalOpen && (
       <>
-        <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm">
+        <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
@@ -263,43 +267,75 @@ export default function CRM() {
       </>
       )}
 
-      <main className="max-w-[1600px] mx-auto px-6 py-12">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
         
-        {/* Dashboard de KPIs */}
-        <KPIDashboard leads={leads} />
+        {/* Section tabs */}
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => setActiveSection('leads')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+              activeSection === 'leads'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+          >
+            Prospectos
+          </button>
+          <button
+            onClick={() => setActiveSection('automation')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+              activeSection === 'automation'
+                ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+          >
+            🚀 Despacho
+          </button>
+        </div>
 
-        {/* Radar Panel */}
-        <ScraperControls 
-          lat={lat} lng={lng} setLat={setLat} setLng={setLng}
-          zonas={zonas} radius={radius} setRadius={setRadius}
-          limit={limit} setLimit={setLimit}
-          pureKeywords={pureKeywords} setPureKeywords={setPureKeywords}
-          scraping={scraping} scraperLogs={scraperLogs}
-          setScraperLogs={setScraperLogs}
-          serverOnline={serverOnline}
-          iniciarScraper={(params) => iniciarScraper(params, refetchLeads)}
-          detenerScraper={detenerScraper}
-        />
+        {activeSection === 'leads' && (
+          <>
+            {/* Dashboard de KPIs */}
+            <KPIDashboard leads={leads} />
 
-        {/* Listado de Prospectos */}
-        <LeadList 
-          leads={leads}
-          loading={isLoading}
-          updateEstado={updateEstado}
-          updateNotas={updateNotas}
-          updateMensajeApertura={updateMensajeApertura}
-          updateMensajeActivador={updateMensajeActivador}
-          updateMensajeVideo={updateMensajeVideo}
-          updateLastTemplateId={updateLastTemplateId}
-          deleteLead={deleteLead}
-          setEditingLead={setEditingLead}
-          setIsEditModalOpen={setIsEditModalOpen}
-          setLeadToDelete={setLeadToDelete}
-          setIsDeleteModalOpen={setIsDeleteModalOpen}
-          setIsLibraryModalOpen={setIsLibraryModalOpen}
-          updateLead={updateLead}
-          formatWa={formatWa}
-        />
+            {/* Radar Panel */}
+            <ScraperControls 
+              lat={lat} lng={lng} setLat={setLat} setLng={setLng}
+              zonas={zonas} radius={radius} setRadius={setRadius}
+              limit={limit} setLimit={setLimit}
+              pureKeywords={pureKeywords} setPureKeywords={setPureKeywords}
+              scraping={scraping} scraperLogs={scraperLogs}
+              setScraperLogs={setScraperLogs}
+              serverOnline={serverOnline}
+              iniciarScraper={(params) => iniciarScraper(params, refetchLeads)}
+              detenerScraper={detenerScraper}
+            />
+
+            {/* Listado de Prospectos */}
+            <LeadList 
+              leads={leads}
+              loading={isLoading}
+              updateEstado={updateEstado}
+              updateNotas={updateNotas}
+              updateMensajeApertura={updateMensajeApertura}
+              updateMensajeActivador={updateMensajeActivador}
+              updateMensajeVideo={updateMensajeVideo}
+              updateLastTemplateId={updateLastTemplateId}
+              deleteLead={deleteLead}
+              setEditingLead={setEditingLead}
+              setIsEditModalOpen={setIsEditModalOpen}
+              setLeadToDelete={setLeadToDelete}
+              setIsDeleteModalOpen={setIsDeleteModalOpen}
+              setIsLibraryModalOpen={setIsLibraryModalOpen}
+              updateLead={updateLead}
+              formatWa={formatWa}
+            />
+          </>
+        )}
+
+        {activeSection === 'automation' && (
+          <AutomationHub leads={leads} />
+        )}
       </main>
 
       {/* Modales */}

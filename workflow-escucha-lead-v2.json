@@ -1,0 +1,155 @@
+{
+  "name": "KoratFlow — Escuchar al Lead (v2 — con respondido_at + Auto-Kill)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escucha-evolution",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-listen",
+      "name": "Escuchar al Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract relevant fields from Evolution API webhook payload\nconst body = $input.item.json.body;\nconst message = body?.data?.message?.conversation || body?.data?.message?.extendedTextMessage?.text || '';\nconst phoneRaw = body?.data?.key?.remoteJid || '';\n// remoteJid format: 51XXXXXXXXX@s.whatsapp.net\nconst phone = phoneRaw.split('@')[0];\nconst isFromMe = body?.data?.key?.fromMe || false;\nconst messageType = body?.event || 'unknown';\n\nif (isFromMe || !phone || !message) {\n  return [{ json: { skip: true } }];\n}\n\nreturn [{ json: { phone, message, messageType, rawBody: body } }];"
+      },
+      "id": "extract-msg",
+      "name": "Extraer Mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-skip",
+      "name": "¿Saltar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "{{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_ANON_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "telefono", "value": "=eq.{{ $('Extraer Mensaje').item.json.phone }}" },
+            { "name": "select", "value": "id,estado_contacto,automation_status,staged_etapa,enviado_at,ultimo_mensaje_cliente" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "find-lead",
+      "name": "Buscar Lead en DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-found",
+      "name": "¿Lead Encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine new estado_contacto based on current stage\nconst lead = $input.item.json;\nconst currentEstado = lead?.estado_contacto || '';\nconst autoStatus = lead?.automation_status || 'idle';\nconst sentAt = lead?.enviado_at ? new Date(lead.enviado_at) : null;\nconst now = new Date();\n\n// Calculate response time in minutes\nlet responseTimeMinutes = null;\nif (sentAt) {\n  responseTimeMinutes = Math.round((now - sentAt) / (1000 * 60));\n}\n\n// Determine what stage they responded to\nlet newEstado = currentEstado;\nif (currentEstado.includes('Apertura') || currentEstado === 'Pendiente') {\n  newEstado = 'Respondió Apertura';\n} else if (currentEstado.includes('Activador')) {\n  newEstado = 'Respondió Activador';\n} else if (currentEstado.includes('Video')) {\n  newEstado = 'Respondió Video';\n} else if (currentEstado.includes('Cierre')) {\n  newEstado = 'Respondió Cierre';\n}\n\n// Auto-Kill: if lead was queued or staged, cancel future messages\nconst shouldCancelQueue = autoStatus === 'queued' || autoStatus === 'staged';\n\nreturn [{\n  json: {\n    lead_id: lead.id,\n    newEstado,\n    responseTimeMinutes,\n    shouldCancelQueue,\n    incomingMessage: $('Extraer Mensaje').item.json.message\n  }\n}];"
+      },
+      "id": "calculate-response",
+      "name": "Calcular Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?id=eq.{{ $json.lead_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "{{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"estado_contacto\": \"{{ $json.newEstado }}\",\n  \"ultimo_mensaje_cliente\": \"{{ $json.incomingMessage }}\",\n  \"respondido_at\": \"{{ $now.toISO() }}\",\n  \"response_time_minutes\": {{ $json.responseTimeMinutes || 'null' }},\n  \"automation_status\": \"{{ $json.shouldCancelQueue ? 'cancelled' : 'idle' }}\",\n  \"scheduled_at\": null\n}",
+        "options": {}
+      },
+      "id": "update-lead-response",
+      "name": "Actualizar Lead + Auto-Kill",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1200, 200]
+    }
+  ],
+  "connections": {
+    "Escuchar al Lead": {
+      "main": [[{ "node": "Extraer Mensaje", "type": "main", "index": 0 }]]
+    },
+    "Extraer Mensaje": {
+      "main": [[{ "node": "¿Saltar?", "type": "main", "index": 0 }]]
+    },
+    "¿Saltar?": {
+      "main": [
+        [],
+        [{ "node": "Buscar Lead en DB", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Lead en DB": {
+      "main": [[{ "node": "¿Lead Encontrado?", "type": "main", "index": 0 }]]
+    },
+    "¿Lead Encontrado?": {
+      "main": [
+        [{ "node": "Calcular Respuesta", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Calcular Respuesta": {
+      "main": [[{ "node": "Actualizar Lead + Auto-Kill", "type": "main", "index": 0 }]]
+    }
+  },
+  "_meta": {
+    "description": "v2 of Escuchar al Lead. Improvements: 1) Records respondido_at timestamp for heat map analytics. 2) Calculates response_time_minutes for conversion stats. 3) AUTO-KILL: if lead was queued, sets automation_status=cancelled and clears scheduled_at so no future batch sends fire.",
+    "endpoint": "escucha-evolution",
+    "importantNotes": "Replace {{ $env.SUPABASE_ANON_KEY }} with your actual Supabase anon key or set it as an n8n environment variable."
+  }
+}
