@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Plus, Edit3, Trash2, Save, BookOpen, Send, ThumbsUp, 
   Target, Zap, History, HeartPulse, Clock, Star, Megaphone, 
-  Layout, ChevronRight, PlayCircle
+  Layout, ChevronRight, PlayCircle, Sparkles
 } from 'lucide-react';
 import { useTemplates } from '../../hooks/useTemplates';
 
@@ -21,7 +21,8 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
   const CORE_ITEMS = [
     { id: 'apertura', label: '01. Apertura', icon: <Target className="w-4 h-4" />, color: 'indigo' },
     { id: 'activador', label: '02. Activador', icon: <Zap className="w-4 h-4" />, color: 'amber' },
-    { id: 'video_pilar', label: '03. Video Pilar', icon: <PlayCircle className="w-4 h-4" />, color: 'rose' }
+    { id: 'video_pilar', label: '03. Video Pilar', icon: <PlayCircle className="w-4 h-4" />, color: 'rose' },
+    { id: 'cierre', label: '04. Cierre', icon: <Sparkles className="w-4 h-4" />, color: 'purple' }
   ];
 
   const EXTENDED_GROUPS = [
