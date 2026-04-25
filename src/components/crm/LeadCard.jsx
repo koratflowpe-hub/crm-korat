@@ -15,6 +15,7 @@ const LeadCard = ({
   updateMensajeApertura, 
   updateMensajeActivador, 
   updateMensajeVideo,
+  updateMensajeCierre,
   updateLastTemplateId,
   setEditingLead, 
   setIsEditModalOpen, 
@@ -34,11 +35,13 @@ const LeadCard = ({
   const aperturaRef = useRef(null);
   const activadorRef = useRef(null);
   const videoRef = useRef(null);
+  const cierreRef = useRef(null);
   const notasRef = useRef(null);
 
   const [localApertura, setLocalApertura] = useState(lead.mensaje_apertura || '');
   const [localActivador, setLocalActivador] = useState(lead.mensaje_activador || '');
   const [localVideo, setLocalVideo] = useState(lead.mensaje_video || '');
+  const [localCierre, setLocalCierre] = useState(lead.mensaje_cierre || '');
 
   // Sincronizar estado local si el lead cambia externamente
   useEffect(() => {
@@ -53,6 +56,10 @@ const LeadCard = ({
     setLocalVideo(lead.mensaje_video || '');
   }, [lead.mensaje_video]);
 
+  useEffect(() => {
+    setLocalCierre(lead.mensaje_cierre || '');
+  }, [lead.mensaje_cierre]);
+
   // Auto-ajuste de altura para textareas
   useEffect(() => {
     const adjustHeight = (ref) => {
@@ -64,8 +71,9 @@ const LeadCard = ({
     adjustHeight(aperturaRef);
     adjustHeight(activadorRef);
     adjustHeight(videoRef);
+    adjustHeight(cierreRef);
     adjustHeight(notasRef);
-  }, [localApertura, localActivador, localVideo, lead.notas, isExpanded]);
+  }, [localApertura, localActivador, localVideo, localCierre, lead.notas, isExpanded]);
 
   const handleSendFlow = async (tipo) => {
     if (!lead.telefono) {
@@ -78,6 +86,7 @@ const LeadCard = ({
     if (tipo === 'apertura') content = localApertura;
     else if (tipo === 'activador') content = localActivador;
     else if (tipo === 'video') content = localVideo;
+    else if (tipo === 'cierre') content = localCierre;
     
     // Fallback: si no hay contenido manual, buscar la primera plantilla de ese tipo
     if (!content) {
@@ -105,14 +114,14 @@ const LeadCard = ({
         lead_id: lead.id,
         service: lead.tags_ia ? lead.tags_ia.join(', ') : '',
         interaction_type: tipo,
-        interaction_step: tipo === 'apertura' ? '01_APERTURA' : (tipo === 'activador' ? '02_ACTIVADOR' : '03_VIDEO')
+        interaction_step: tipo === 'apertura' ? '01_APERTURA' : (tipo === 'activador' ? '02_ACTIVADOR' : (tipo === 'video' ? '03_VIDEO' : '04_CIERRE'))
       });
       
       const templateType = tipo === 'video' ? 'video_pilar' : tipo;
       const template = templates.find(t => t.etapa === templateType);
       if (template && incrementSentCount) incrementSentCount(template.id);
       
-      const nuevoEstado = tipo === 'apertura' ? 'Apertura Enviado' : (tipo === 'activador' ? 'Activador Enviado' : 'Video Enviado');
+      const nuevoEstado = tipo === 'apertura' ? 'Apertura Enviado' : (tipo === 'activador' ? 'Activador Enviado' : (tipo === 'video' ? 'Video Enviado' : 'Cierre Enviado'));
       handleUpdateEstado(nuevoEstado);
       
       updateNotas(lead.id, (lead.notas || '') + `\n[${new Date().toLocaleDateString()}] Mensaje de ${tipo.toUpperCase()} enviado.`);
@@ -140,6 +149,7 @@ const LeadCard = ({
     if (updater === updateMensajeApertura) setLocalApertura(content);
     if (updater === updateMensajeActivador) setLocalActivador(content);
     if (updater === updateMensajeVideo) setLocalVideo(content);
+    if (updater === updateMensajeCierre) setLocalCierre(content);
     updater(lead.id, content);
   };
 
@@ -154,6 +164,7 @@ const LeadCard = ({
     if (updater === updateMensajeApertura) setLocalApertura(content);
     if (updater === updateMensajeActivador) setLocalActivador(content);
     if (updater === updateMensajeVideo) setLocalVideo(content);
+    if (updater === updateMensajeCierre) setLocalCierre(content);
     updater(lead.id, content);
 
     if (incrementSentCount) incrementSentCount(template.id);
@@ -164,6 +175,15 @@ const LeadCard = ({
     updateEstado(lead.id, newEstado);
     if (newEstado.includes('Respondió') && lead.last_template_id && incrementSuccessCount) {
       incrementSuccessCount(lead.last_template_id);
+    }
+  };
+
+  const handleFeedback = (tipo, funciono) => {
+    if (funciono) {
+      const stageName = tipo === 'video' ? 'Video' : tipo.charAt(0).toUpperCase() + tipo.slice(1);
+      handleUpdateEstado(`Respondió ${stageName}`);
+    } else {
+      updateNotas(lead.id, (lead.notas || '') + `\n[${new Date().toLocaleDateString()}] ❌ El mensaje de ${tipo.toUpperCase()} no obtuvo respuesta.`);
     }
   };
 
@@ -403,6 +423,10 @@ const LeadCard = ({
                   {isSendingFlow === 'apertura' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
                   {isSendingFlow === 'apertura' ? 'Enviando...' : 'Enviar Apertura'}
                 </button>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => handleFeedback('apertura', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
+                  <button onClick={() => handleFeedback('apertura', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
+                </div>
               </div>
 
               <div className="h-px bg-slate-200" />
@@ -439,6 +463,10 @@ const LeadCard = ({
                   {isSendingFlow === 'activador' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
                   {isSendingFlow === 'activador' ? 'Enviando...' : 'Enviar Activador'}
                 </button>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => handleFeedback('activador', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
+                  <button onClick={() => handleFeedback('activador', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
+                </div>
               </div>
 
               <div className="h-px bg-slate-200" />
@@ -475,6 +503,50 @@ const LeadCard = ({
                   {isSendingFlow === 'video' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
                   {isSendingFlow === 'video' ? 'Enviando...' : 'Enviar Video'}
                 </button>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => handleFeedback('video', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
+                  <button onClick={() => handleFeedback('video', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-200" />
+
+              {/* Script de Cierre */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <Sparkles size={10} /> 04. Cierre
+                  </span>
+                  <select 
+                    onChange={(e) => { applyTemplateById(e.target.value, updateMensajeCierre); e.target.value = ''; }}
+                    className="text-[9px] border border-slate-200 rounded-md px-2 py-1 outline-none text-purple-600 bg-white font-bold"
+                  >
+                    <option value="">📚 Biblioteca</option>
+                    {templates.filter(t => t.etapa === 'cierre').map(t => (
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <textarea
+                  ref={cierreRef}
+                  className="w-full text-[11px] font-semibold p-3 rounded-xl border border-slate-200 bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 transition-all outline-none min-h-[60px] resize-none overflow-hidden text-slate-700 mb-2 shadow-sm"
+                  value={localCierre}
+                  onChange={(e) => setLocalCierre(e.target.value)}
+                  onBlur={() => updateMensajeCierre(lead.id, localCierre)}
+                  placeholder="Mensaje de cierre final..."
+                />
+                <button
+                  onClick={() => handleSendFlow('cierre')}
+                  disabled={isSendingFlow === 'cierre'}
+                  className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                >
+                  {isSendingFlow === 'cierre' ? <span className="animate-spin">⏳</span> : <Send size={12} />}
+                  {isSendingFlow === 'cierre' ? 'Enviando...' : 'Enviar Cierre'}
+                </button>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => handleFeedback('cierre', true)} className="flex-1 py-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-100 transition-colors">✅ Funcionó</button>
+                  <button onClick={() => handleFeedback('cierre', false)} className="flex-1 py-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-100 transition-colors">❌ No funcionó</button>
+                </div>
               </div>
             </div>
           </div>

@@ -105,6 +105,14 @@ export const EditLeadModal = ({ isOpen, onClose, editingLead, setEditingLead, ha
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Script Activador</label>
                 <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none resize-none" value={editingLead.mensaje_activador || ''} onChange={e => setEditingLead({...editingLead, mensaje_activador: e.target.value})} />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Script Video (Paso 3)</label>
+                <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none resize-none" value={editingLead.mensaje_video || ''} onChange={e => setEditingLead({...editingLead, mensaje_video: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Script de Cierre</label>
+                <textarea className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none resize-none" value={editingLead.mensaje_cierre || ''} onChange={e => setEditingLead({...editingLead, mensaje_cierre: e.target.value})} />
+              </div>
           </div>
         </form>
         
