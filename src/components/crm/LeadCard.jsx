@@ -89,6 +89,20 @@ const LeadCard = ({
       return;
     }
 
+    if (tipo === 'activador') {
+      const hasApertura = [
+        'Apertura Enviado', 'Respondió Apertura', 'Enviar Activador',
+        'Activador Enviado', 'Respondió Activador', 'Video Enviado',
+        'Respondió Video', 'Cierre Enviado', 'Respondió Cierre',
+        'Reunión Agendada', 'Cliente Cerrado'
+      ].includes(lead.estado_contacto);
+
+      if (!hasApertura) {
+        const confirm = window.confirm("⚠️ ALERTA: Estás intentando enviar un ACTIVADOR pero no se registra un mensaje de APERTURA previo.\n\n¿Estás seguro de que deseas continuar?");
+        if (!confirm) return;
+      }
+    }
+
     // Priorizar el contenido editado manualmente
     let content = '';
     if (tipo === 'apertura') content = localApertura;
@@ -143,6 +157,20 @@ const LeadCard = ({
   };
 
   const handleStageForSending = async (tipo) => {
+    if (tipo === 'activador') {
+      const hasApertura = [
+        'Apertura Enviado', 'Respondió Apertura', 'Enviar Activador',
+        'Activador Enviado', 'Respondió Activador', 'Video Enviado',
+        'Respondió Video', 'Cierre Enviado', 'Respondió Cierre',
+        'Reunión Agendada', 'Cliente Cerrado'
+      ].includes(lead.estado_contacto);
+
+      if (!hasApertura) {
+        const confirm = window.confirm("⚠️ ALERTA: Estás preparando un ACTIVADOR pero no se registra un mensaje de APERTURA previo.\n\n¿Estás seguro de que deseas continuar?");
+        if (!confirm) return;
+      }
+    }
+
     let content = '';
     if (tipo === 'apertura') content = localApertura;
     else if (tipo === 'activador') content = localActivador;
