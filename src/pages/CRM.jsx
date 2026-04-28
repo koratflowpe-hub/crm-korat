@@ -25,7 +25,6 @@ export default function CRM() {
   const [limit, setLimit] = useState(() => Number(localStorage.getItem('kf_limit')) || 15);
   const [lat, setLat] = useState(() => Number(localStorage.getItem('kf_lat')) || -11.500); 
   const [lng, setLng] = useState(() => Number(localStorage.getItem('kf_lng')) || -77.210);
-  const [testMode, setTestMode] = useState(() => localStorage.getItem('kf_testMode') !== 'false');
 
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,7 +57,7 @@ export default function CRM() {
     createLead,
     updateLead,
     refetchLeads
-  } = useLeads(testMode);
+  } = useLeads();
 
   const {
     scraping,
@@ -76,8 +75,7 @@ export default function CRM() {
     localStorage.setItem('kf_limit', limit.toString());
     localStorage.setItem('kf_lat', lat.toString());
     localStorage.setItem('kf_lng', lng.toString());
-    localStorage.setItem('kf_testMode', testMode.toString());
-  }, [pureKeywords, radius, limit, lat, lng, testMode]);
+  }, [pureKeywords, radius, limit, lat, lng]);
 
   // Fetch initial data (Zonas)
   useEffect(() => {
@@ -164,27 +162,7 @@ export default function CRM() {
                            <span className="text-[9px] font-extrabold text-slate-600 uppercase tracking-tight">{serverOnline ? 'Online' : 'Offline'}</span>
                         </div>
                      </div>
-
-                     <div className="h-8 w-px bg-slate-100" />
-
-                     {/* Test Mode Toggle */}
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Modo de Prueba</span>
-                        <button 
-                          onClick={() => setTestMode(!testMode)} 
-                          className="flex items-center gap-2 group transition-all"
-                          title={testMode ? "Sandbox activado: Las eliminaciones NO son permanentes" : "Modo Producción: Las eliminaciones bloquean leads permanentemente"}
-                        >
-                           <div className={`relative w-9 h-5 rounded-full transition-all duration-300 ${testMode ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-slate-200'}`}>
-                              <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform duration-300 shadow-sm ${testMode ? 'translate-x-4' : 'translate-x-0'}`} />
-                           </div>
-                           <span className={`text-[9px] font-extrabold uppercase transition-colors ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
-                              {testMode ? 'Sandbox' : 'Live'}
-                           </span>
-                        </button>
-                     </div>
                   </div>
-               
                  <div className="flex items-center gap-3">
                    <button 
                      onClick={() => setIsDemoModalOpen(true)} 
@@ -220,21 +198,6 @@ export default function CRM() {
                        <div className={`w-2.5 h-2.5 rounded-full ${serverOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                        <span className="text-[11px] font-black text-slate-600 uppercase tracking-tight">{serverOnline ? 'Online' : 'Offline'}</span>
                     </div>
-                 </div>
-                 
-                 <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
-                    <span className="text-sm font-bold text-slate-700">Entorno</span>
-                    <button 
-                      onClick={() => setTestMode(!testMode)} 
-                      className="flex items-center gap-2 group transition-all"
-                    >
-                       <div className={`relative w-12 h-7 rounded-full transition-all duration-300 ${testMode ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-slate-200'}`}>
-                          <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm ${testMode ? 'translate-x-5' : 'translate-x-0'}`} />
-                       </div>
-                       <span className={`text-[11px] font-extrabold uppercase transition-colors ${testMode ? 'text-amber-600' : 'text-slate-400'}`}>
-                          {testMode ? 'Sandbox' : 'Live'}
-                       </span>
-                    </button>
                  </div>
               </div>
 

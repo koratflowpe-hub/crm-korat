@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 
-export const useLeads = (testMode = true) => {
+export const useLeads = () => {
   const queryClient = useQueryClient();
 
   // Fetch Leads
@@ -47,7 +47,7 @@ export const useLeads = (testMode = true) => {
 
   const deleteLeadMutation = useMutation({
     mutationFn: async (leadObj) => {
-      if (!testMode && leadObj.telefono) {
+      if (leadObj.telefono) {
         await supabase.from('leads_rechazados').upsert([{ 
           telefono: leadObj.telefono, 
           nombre_salon: leadObj.nombre_salon 
