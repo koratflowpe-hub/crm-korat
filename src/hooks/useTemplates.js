@@ -60,6 +60,14 @@ export const useTemplates = () => {
   // Delete Template
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id) => {
+      // 1. Limpiar referencias en leads_salones para evitar error 409 Conflict (Foreign Key)
+      // Esto es necesario porque no podemos alterar el esquema de la BD directamente
+      await supabase
+        .from('leads_salones')
+        .update({ last_template_id: null })
+        .eq('last_template_id', id);
+
+      // 2. Proceder con el borrado de la plantilla
       const { error } = await supabase.from('message_templates').delete().eq('id', id);
       if (error) throw error;
       return id;

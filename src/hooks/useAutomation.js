@@ -110,29 +110,89 @@ export function getIrregularPause(messageIndex, blockTotal) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SLOT DISTRIBUTOR
-// Takes N staged leads and assigns exact scheduled_at timestamps
-// Respects the schedule config and anti-ban pause rules
+// SLOT DISTRIBUTOR — Smart Time-Aware Scheduling
+// Takes N staged leads and assigns exact scheduled_at timestamps.
+// — Skips blocks that have already ended.
+// — If a block is currently active, starts from NOW (with a short buffer).
+// — If all today's blocks are past, rolls over to the next valid schedule day.
 // ─────────────────────────────────────────────────────────────
-export function distributeSlots(stagedLeads, targetDate = new Date()) {
-  const dayOfWeek = targetDate.getDay();
-  const dayConfig = SCHEDULE_CONFIG[dayOfWeek];
 
-  if (!dayConfig || dayConfig.blocks.length === 0) {
-    return { error: `No hay bloques disponibles para ${dayConfig?.label || 'hoy'} (${dayConfig?.badge || 'sin envíos'})`, slots: [] };
+/**
+ * Given a base date and an HH:MM string, returns a Date for that time on the base date.
+ */
+function timeOnDate(baseDate, timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/**
+ * Find the next date (from a given start date) that has available blocks.
+ * Looks up to 7 days ahead to avoid infinite loop.
+ */
+function findNextAvailableDate(fromDate) {
+  for (let i = 1; i <= 7; i++) {
+    const candidate = new Date(fromDate);
+    candidate.setDate(candidate.getDate() + i);
+    candidate.setHours(0, 0, 0, 0);
+    const dow = candidate.getDay();
+    const cfg = SCHEDULE_CONFIG[dow];
+    if (cfg && cfg.blocks.length > 0) return candidate;
   }
+  return null;
+}
+
+export function distributeSlots(stagedLeads, targetDate = new Date()) {
+  const now = new Date();
+  // Use a 2-minute buffer so we never schedule something too close to "now"
+  const BUFFER_MS = 2 * 60 * 1000;
 
   const slots = [];
   let leadIndex = 0;
 
-  for (const block of dayConfig.blocks) {
+  // Collect all available blocks: first from targetDate, then roll over to next valid day
+  const buildBlockList = (baseDate) => {
+    const dayOfWeek = baseDate.getDay();
+    const dayConfig = SCHEDULE_CONFIG[dayOfWeek];
+    if (!dayConfig || dayConfig.blocks.length === 0) return [];
+
+    return dayConfig.blocks.map(block => ({
+      block,
+      blockEnd: timeOnDate(baseDate, block.end),
+      blockStart: timeOnDate(baseDate, block.start),
+      baseDate,
+    }));
+  };
+
+  let allBlocks = buildBlockList(targetDate);
+
+  // Filter out blocks that have already ended (end time <= now)
+  let futureBlocks = allBlocks.filter(({ blockEnd }) => blockEnd > now);
+
+  // If no blocks remain today, roll over to the next available day
+  if (futureBlocks.length === 0) {
+    const nextDate = findNextAvailableDate(targetDate);
+    if (!nextDate) {
+      const dayOfWeek = targetDate.getDay();
+      const dayConfig = SCHEDULE_CONFIG[dayOfWeek];
+      return {
+        error: `No hay bloques futuros disponibles esta semana. Hoy es ${dayConfig?.label || 'hoy'} (${dayConfig?.badge || ''}).`,
+        slots: [],
+      };
+    }
+    futureBlocks = buildBlockList(nextDate);
+  }
+
+  for (const { block, blockStart } of futureBlocks) {
     if (leadIndex >= stagedLeads.length) break;
 
-    const [startH, startM] = block.start.split(':').map(Number);
-    const blockStart = new Date(targetDate);
-    blockStart.setHours(startH, startM, 0, 0);
+    // If the block hasn't started yet, schedule from its start.
+    // If the block is currently active (start <= now < end), schedule from now + buffer.
+    let currentTime = blockStart > now
+      ? new Date(blockStart)
+      : new Date(now.getTime() + BUFFER_MS);
 
-    let currentTime = new Date(blockStart);
     let messagesInBlock = 0;
 
     while (messagesInBlock < block.maxMessages && leadIndex < stagedLeads.length) {
@@ -146,7 +206,6 @@ export function distributeSlots(stagedLeads, targetDate = new Date()) {
         spintax_variant_used: processedMessage !== lead.staged_message ? processedMessage : null,
       });
 
-      // Calculate next send time with irregular pause
       const pause = getIrregularPause(messagesInBlock, block.maxMessages);
       currentTime = new Date(currentTime.getTime() + pause * 1000);
 
