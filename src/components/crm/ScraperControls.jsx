@@ -20,7 +20,9 @@ const ScraperControls = ({
   pureKeywords, setPureKeywords,
   scraping, scraperLogs, setScraperLogs,
   serverOnline, iniciarScraper, detenerScraper,
-  isSavingConfig
+  isSavingConfig,
+  isExpanded,
+  onToggle
 }) => {
   const [showConsole, setShowConsole] = useState(false);
   const scrollRef = useRef(null);
@@ -49,12 +51,11 @@ const ScraperControls = ({
     fetchCityName();
   }, [lat, lng]);
 
-  const lastLog = scraperLogs[scraperLogs.length - 1] || "Esperando instrucciones...";
+  const lastLog = scraperLogs[scraperLogs.length - 1] || "Radar listo para iniciar...";
 
   const handleStartScraper = () => {
-    // Construimos los parámetros que n8n necesita para que no lleguen como undefined
     const params = {
-      ubicacion: detectedCity, // ¡Ahora la ubicación es real y detectada!
+      ubicacion: detectedCity,
       lat: lat,
       lng: lng,
       radius: radius,
@@ -65,8 +66,49 @@ const ScraperControls = ({
     iniciarScraper(params);
   };
 
+  // Si no está expandido, mostramos la versión "Compacta / Glass"
+  if (!isExpanded) {
+    return (
+      <div 
+        onClick={onToggle}
+        className={`group cursor-pointer bg-white border border-slate-200/60 rounded-2xl p-4 mb-8 transition-all hover:shadow-lg hover:border-primary/30 flex items-center justify-between ${scraping ? 'ring-2 ring-primary/20 bg-primary/[0.02]' : ''}`}
+      >
+        <div className="flex items-center gap-4 flex-1 overflow-hidden">
+          <div className={`p-3 rounded-xl transition-colors ${scraping ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
+            <Activity size={20} className={scraping ? 'animate-pulse' : ''} />
+          </div>
+          
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inteligencia de Mercado</span>
+              {scraping && (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded-full animate-pulse">
+                  <div className="w-1 h-1 bg-primary rounded-full" /> ESCANEANDO
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-0.5">
+              <h3 className="text-sm font-bold text-slate-900 truncate">
+                Radar en <span className="text-primary">{detectedCity}</span>
+              </h3>
+              <div className="h-4 w-px bg-slate-200" />
+              <p className="text-xs font-medium text-slate-500 truncate italic">
+                {scraping ? lastLog : `${(radius/1000).toFixed(1)}km | ${limit} leads | "${pureKeywords}"`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold transition-all hover:bg-primary active:scale-95">
+          <Zap size={14} />
+          {scraping ? 'Ver Progreso' : 'Abrir Radar'}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50 overflow-hidden mb-12 transition-all hover:shadow-2xl">
+    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50 overflow-hidden mb-12 transition-all animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="flex flex-col xl:flex-row">
 
         {/* ── Área del Mapa ── */}
@@ -103,6 +145,15 @@ const ScraperControls = ({
               <h2 className="text-3xl font-black text-slate-900 tracking-tight">Extraer Leads</h2>
               <p className="text-sm font-medium text-slate-400 mt-1">Configura los parámetros de búsqueda local.</p>
             </div>
+
+            {/* Botón de Cerrar/Minimizar */}
+            <button 
+              onClick={onToggle}
+              className="p-3 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-2xl transition-all active:scale-90"
+              title="Minimizar Radar"
+            >
+              <ChevronUp size={20} />
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -197,7 +248,7 @@ const ScraperControls = ({
                 {scraping && <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />}
               </div>
               
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 min-w-0">
                 <p className={`text-[11px] font-mono font-bold truncate ${scraping ? 'text-primary/90' : 'text-slate-500'}`}>
                   {scraping ? '> ' : ''}{lastLog}
                 </p>
@@ -215,7 +266,6 @@ const ScraperControls = ({
               </button>
             </div>
 
-            {/* Panel de Logs Expandido */}
             <div className={`overflow-hidden transition-all duration-500 ease-out ${showConsole ? 'max-h-56 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
               <div 
                 ref={scrollRef}
@@ -237,7 +287,6 @@ const ScraperControls = ({
             </div>
           </div>
 
-          {/* Botón Principal con Efecto de Carga Premium */}
           <button
             onClick={scraping ? detenerScraper : handleStartScraper}
             disabled={!serverOnline}
@@ -265,19 +314,12 @@ const ScraperControls = ({
                 </>
               )}
             </div>
-            
-            {/* Animación de escaneo láser cuando está activo */}
             {scraping && (
               <div className="absolute inset-0 bg-slate-900">
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 <div className="absolute top-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_15px_#3b82f6] animate-scan-line"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full h-full bg-gradient-to-b from-primary/5 via-transparent to-primary/5 animate-pulse"></div>
-                </div>
               </div>
             )}
-            
-            {/* Efecto de brillo al hover */}
             {!scraping && <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />}
           </button>
         </div>

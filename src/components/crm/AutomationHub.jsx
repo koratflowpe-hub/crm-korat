@@ -276,12 +276,17 @@ export default function AutomationHub({ leads = [] }) {
   const handleDispatch = async () => {
     setIsDispatching(true);
     try {
-      const webhookUrl = import.meta.env.VITE_N8N_DISPATCH_WEBHOOK;
-      await fetch(webhookUrl, { method: 'POST' });
+      // Usamos ruta relativa para pasar por el proxy de Vite (local) y Vercel (producción)
+      // y evitar errores de CORS al llamar directamente al webhook de n8n
+      const res = await fetch('/api/dispatch/webhook/lanzar-despacho', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error(`n8n respondió con status ${res.status}`);
       alert('🚀 Despacho iniciado con éxito. n8n procesará los mensajes programados.');
     } catch (e) {
       console.error('Error dispatching:', e);
-      alert('❌ Error al conectar con n8n');
+      alert(`❌ Error al conectar con n8n: ${e.message}`);
     } finally {
       setIsDispatching(false);
     }
@@ -346,7 +351,7 @@ export default function AutomationHub({ leads = [] }) {
       <div className="flex border-b border-slate-100 overflow-x-auto">
         {[
           { id: 'bloques', icon: Calendar, label: 'Bloques' },
-          { id: 'cola', icon: Send, label: `Cola (${stagedCount})` },
+          { id: 'cola', icon: Send, label: `Cola (${stagedCount + queuedCount})` },
           { id: 'radar', icon: BarChart2, label: 'Radar' },
         ].map(tab => (
           <button

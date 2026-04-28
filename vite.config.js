@@ -75,6 +75,11 @@ export default defineConfig({
         target: 'https://hooks.koratflow.agency/webhook/koratflow-lead-ia',
         changeOrigin: true,
         rewrite: () => ''
+      },
+      '/api/dispatch': {
+        target: 'https://hooks.koratflow.agency',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/dispatch/, '')
       }
     }
   }

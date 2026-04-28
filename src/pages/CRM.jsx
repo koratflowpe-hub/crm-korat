@@ -46,6 +46,9 @@ export default function CRM() {
   // Zonas prospectadas (Map data)
   const [zonas, setZonas] = useState([]);
 
+  // Control de visibilidad del Radar (Scraper)
+  const [isScraperExpanded, setIsScraperExpanded] = useState(false);
+
   // Data Hooks
   const { 
     leads, 
@@ -116,21 +119,27 @@ export default function CRM() {
     };
   }, [refetchLeads]);
 
-  // Sincronización de la Biblioteca con la URL para persistencia
+  // Sincronización de la Biblioteca y Sección con la URL para persistencia
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    
     const libraryParam = params.get('library');
     if (libraryParam) {
       setIsLibraryModalOpen(libraryParam === 'true' ? 'apertura' : libraryParam);
     }
+
+    const sectionParam = params.get('section');
+    if (sectionParam && (sectionParam === 'leads' || sectionParam === 'automation')) {
+      setActiveSection(sectionParam);
+    }
   }, []);
 
-  const setLibraryUrl = (val) => {
+  const updateUrlParam = (key, val) => {
     const params = new URLSearchParams(window.location.search);
     if (val) {
-      params.set('library', val === true ? 'apertura' : val);
+      params.set(key, val === true ? 'true' : val);
     } else {
-      params.delete('library');
+      params.delete(key);
     }
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     window.history.replaceState({}, '', newUrl);
@@ -138,13 +147,18 @@ export default function CRM() {
 
   const handleOpenLibrary = (tab = 'apertura') => {
     setIsLibraryModalOpen(tab);
-    setLibraryUrl(tab);
+    updateUrlParam('library', tab);
     setIsMobileMenuOpen(false);
   };
 
   const handleCloseLibrary = () => {
     setIsLibraryModalOpen(false);
-    setLibraryUrl(null);
+    updateUrlParam('library', null);
+  };
+
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+    updateUrlParam('section', section);
   };
 
   const handleCreateUser = (e) => {
@@ -263,7 +277,7 @@ export default function CRM() {
         {/* Section tabs */}
         <div className="flex items-center gap-2 mb-6">
           <button
-            onClick={() => setActiveSection('leads')}
+            onClick={() => handleSectionChange('leads')}
             className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
               activeSection === 'leads'
                 ? 'bg-slate-900 text-white shadow-sm'
@@ -273,7 +287,7 @@ export default function CRM() {
             Prospectos
           </button>
           <button
-            onClick={() => setActiveSection('automation')}
+            onClick={() => handleSectionChange('automation')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
               activeSection === 'automation'
                 ? 'bg-primary text-white shadow-sm shadow-primary/20'
@@ -289,7 +303,7 @@ export default function CRM() {
             {/* Dashboard de KPIs */}
             <KPIDashboard leads={leads} onMetricClick={handleMetricClick} />
 
-            {/* Radar Panel */}
+            {/* Radar Panel (Colapsable) */}
             <ScraperControls 
               lat={lat} lng={lng} setLat={setLat} setLng={setLng}
               zonas={zonas} radius={radius} setRadius={setRadius}
@@ -298,9 +312,14 @@ export default function CRM() {
               scraping={scraping} scraperLogs={scraperLogs}
               setScraperLogs={setScraperLogs}
               serverOnline={serverOnline}
-              iniciarScraper={(params) => iniciarScraper(params, refetchLeads)}
+              iniciarScraper={(params) => {
+                iniciarScraper(params, refetchLeads);
+                setIsScraperExpanded(true); // Auto-expandir al iniciar
+              }}
               detenerScraper={detenerScraper}
               isSavingConfig={isSavingConfig}
+              isExpanded={isScraperExpanded}
+              onToggle={() => setIsScraperExpanded(!isScraperExpanded)}
             />
 
             {/* Listado de Prospectos */}
@@ -359,7 +378,10 @@ export default function CRM() {
         isOpen={!!isLibraryModalOpen}
         initialTab={typeof isLibraryModalOpen === 'string' ? isLibraryModalOpen : 'apertura'}
         onClose={handleCloseLibrary}
-        onTabChange={setLibraryUrl}
+        onTabChange={(tab) => {
+          setIsLibraryModalOpen(tab);
+          updateUrlParam('library', tab);
+        }}
       />
 
       {/* Drill Down Modal para KPIs */}

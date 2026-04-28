@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const useCrmConfig = () => {
@@ -20,7 +20,7 @@ export const useCrmConfig = () => {
           .from('crm_scraper_config')
           .select('*')
           .eq('id', 1)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.warn('No se pudo cargar la configuración de Supabase, usando local:', error.message);
@@ -29,11 +29,11 @@ export const useCrmConfig = () => {
 
         if (data) {
           setConfig({
-            pureKeywords: data.pure_keywords,
-            radius: data.radius,
-            limit: data.scraper_limit,
-            lat: data.lat,
-            lng: data.lng
+            pureKeywords: data.pure_keywords || 'salon,belleza,uñas,spa,barberia',
+            radius: Number(data.radius) || 3000,
+            limit: Number(data.scraper_limit) || 15,
+            lat: parseFloat(data.lat) || -11.500,
+            lng: parseFloat(data.lng) || -77.210
           });
         }
       } catch (err) {
@@ -46,36 +46,44 @@ export const useCrmConfig = () => {
     fetchConfig();
   }, []);
 
-  // Función para guardar cambios (con debouncing manual opcional o directo)
-  const saveConfig = useCallback(async (newConfig) => {
+  // Función para guardar cambios con debounce
+  const saveToSupabase = useCallback(async (newConfig) => {
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from('crm_scraper_config')
         .update({
           pure_keywords: newConfig.pureKeywords,
-          radius: newConfig.radius,
-          scraper_limit: newConfig.limit,
-          lat: newConfig.lat,
-          lng: newConfig.lng,
+          radius: Number(newConfig.radius),
+          scraper_limit: Number(newConfig.limit),
+          lat: parseFloat(newConfig.lat),
+          lng: parseFloat(newConfig.lng),
           updated_at: new Date().toISOString()
         })
         .eq('id', 1);
 
       if (error) throw error;
     } catch (err) {
-      console.error('Error al guardar config:', err);
+      console.error('Error al guardar config en Supabase:', err);
     } finally {
       setIsSaving(false);
     }
   }, []);
 
-  // Update individual field and save
+  // Debounce ref
+  const debounceTimer = useRef(null);
+
   const updateField = (field, value) => {
     const newConfig = { ...config, [field]: value };
     setConfig(newConfig);
-    // Guardamos en Supabase (aquí podrías añadir un debounce si lo prefieres)
-    saveConfig(newConfig);
+
+    // Cancelar timer previo
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    // Programar guardado en 800ms
+    debounceTimer.current = setTimeout(() => {
+      saveToSupabase(newConfig);
+    }, 800);
   };
 
   return {
@@ -89,7 +97,7 @@ export const useCrmConfig = () => {
     setLng: (val) => updateField('lng', val),
     setConfig: (newConfig) => {
       setConfig(newConfig);
-      saveConfig(newConfig);
+      saveToSupabase(newConfig);
     }
   };
 };

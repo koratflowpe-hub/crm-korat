@@ -11,16 +11,16 @@ const KPIDashboard = ({ leads, onMetricClick }) => {
     l.estado_contacto !== 'No Interesado'
   );
 
-  // 3. Oportunidades Hot (Fases avanzadas: Activador, Video, Cierre, Reunión)
+  // 3. Oportunidades Hot (Fases avanzadas: Desde que responden al activador o se envía video)
   const hotList = leads.filter(l => 
-    ['Activador Enviado', 'Respondió Activador', 'Video Enviado', 'Respondió Video', 'Cierre Enviado', 'Respondió Cierre', 'Reunión Agendada'].includes(l.estado_contacto)
+    ['Respondió Activador', 'Video Enviado', 'Respondió Video', 'Cierre Enviado', 'Respondió Cierre', 'Reunión Agendada'].includes(l.estado_contacto)
   );
 
   // 4. Ventas Cerradas
   const cerradosList = leads.filter(l => l.estado_contacto === 'Cliente Cerrado');
   
   const tasaApertura = allLeads.length > 0 ? Math.round((aperturasList.length / allLeads.length) * 100) : 0;
-  const tasaCierre = aperturasList.length > 0 ? Math.round((cerradosList.length / aperturasList.length) * 100) : 0;
+  const tasaCierre = hotList.length > 0 ? Math.round((cerradosList.length / hotList.length) * 100) : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
