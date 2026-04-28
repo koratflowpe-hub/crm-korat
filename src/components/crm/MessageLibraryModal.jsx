@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useTemplates } from '../../hooks/useTemplates';
 import { getTemplateRating } from '../../utils/crmHelpers';
+import { useThemeStore } from '../../store/themeStore';
 
 // ─── Mobile view: 'categories' | 'list' | 'editor'
 const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
@@ -96,11 +97,17 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
     setTimeout(() => { setSaved(false); cancelEdit(); }, 1200);
   };
 
+  const { isSidebarHidden, isSidebarCollapsed } = useThemeStore();
+
   if (!isOpen) return null;
 
   // ─────────────────────────────── RENDER ────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-white flex flex-col z-[200]">
+    <div className={`fixed inset-0 bg-white flex flex-col z-[200] transition-all duration-500 ease-in-out ${
+      isSidebarHidden 
+        ? 'ml-0' 
+        : (typeof window !== 'undefined' && window.innerWidth < 768 ? 'ml-0' : (isSidebarCollapsed ? 'ml-20' : 'ml-64'))
+    }`}>
       {/* Full-screen container — no padding, no max-width, no backdrop */}
       <div className="w-full h-full flex flex-col">
 

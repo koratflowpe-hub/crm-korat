@@ -3,9 +3,8 @@ import Sidebar from './Sidebar';
 import { useThemeStore } from '../store/themeStore';
 
 export default function Layout({ children }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const { isSidebarHidden, isSidebarCollapsed, setSidebarCollapsed } = useThemeStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const { isSidebarHidden } = useThemeStore();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -18,13 +17,13 @@ export default function Layout({ children }) {
       className="flex bg-background font-sans selection:bg-primary/30 h-dvh overflow-hidden"
       style={{ overscrollBehaviorX: 'none' }}
     >
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
+      <Sidebar collapsed={isSidebarCollapsed} setCollapsed={setSidebarCollapsed} isMobile={isMobile} />
       <div 
         className={`flex-1 flex flex-col h-dvh overflow-y-auto overflow-x-hidden transition-all duration-500 ease-in-out ${
           isSidebarHidden 
             ? 'ml-0' 
-            : (isMobile ? 'ml-0' : (collapsed ? 'ml-20' : 'ml-64'))
-        } relative z-10`}
+            : (isMobile ? 'ml-0' : (isSidebarCollapsed ? 'ml-20' : 'ml-64'))
+        } relative`}
         style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
       >
          {children}

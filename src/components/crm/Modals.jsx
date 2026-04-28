@@ -4,7 +4,7 @@ import { UserPlus, X, Edit3, AlertCircle } from 'lucide-react';
 export const CreateLeadModal = ({ isOpen, onClose, newLead, setNewLead, handleCreateUser }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-all">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-all">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden transform transition-all">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -43,7 +43,7 @@ export const CreateLeadModal = ({ isOpen, onClose, newLead, setNewLead, handleCr
 export const EditLeadModal = ({ isOpen, onClose, editingLead, setEditingLead, handleUpdateLead }) => {
   if (!isOpen || !editingLead) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-all overflow-y-auto">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-all overflow-y-auto">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] my-8 overflow-hidden transform transition-all">
         <div className="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
@@ -128,7 +128,7 @@ export const EditLeadModal = ({ isOpen, onClose, editingLead, setEditingLead, ha
 export const DeleteLeadModal = ({ isOpen, onClose, leadToDelete, confirmDelete }) => {
   if (!isOpen || !leadToDelete) return null;
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
        <div className="bg-white w-full max-w-sm rounded-2xl p-8 border border-slate-100 shadow-2xl flex flex-col items-center text-center transform transition-all">
           <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-6 text-rose-500 border border-rose-100">
              <AlertCircle size={32} />

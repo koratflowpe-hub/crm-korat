@@ -72,7 +72,7 @@ const LiveDemoModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
       <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl flex overflow-hidden max-h-[85vh]">
         
         {/* Left Side: Setup */}
