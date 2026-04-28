@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageCircle, MapPin, Globe, Flame, Edit3, Send, Activity,
-  Trash2, Phone, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings, PlayCircle, Rocket, Clock
+  Trash2, Phone, ChevronDown, ChevronUp, Bot, MoreHorizontal, Sparkles, Zap, Video, BookOpen, Copy, Check, Settings, PlayCircle, Rocket, Clock, CheckSquare, Square
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from '../icons/SocialIcons';
 import { getStatusColor, getTagStyle, formatWa, ESTADOS, getTemplateRating } from '../../utils/crmHelpers';
@@ -23,7 +23,10 @@ const LeadCard = ({
   setLeadToDelete, 
   setIsDeleteModalOpen,
   setIsLibraryModalOpen,
-  updateLead
+  updateLead,
+  isSelectionMode,
+  isSelected,
+  onToggleSelection
 }) => {
   const { stageForSending, unstage } = useAutomation();
   const [stagingTab, setStagingTab] = useState(null); // which tab is being staged
@@ -91,7 +94,7 @@ const LeadCard = ({
 
     if (tipo === 'activador') {
       const hasApertura = [
-        'Apertura Enviado', 'Respondió Apertura', 'Enviar Activador',
+        'Apertura Enviado', 'Respondió Apertura',
         'Activador Enviado', 'Respondió Activador', 'Video Enviado',
         'Respondió Video', 'Cierre Enviado', 'Respondió Cierre',
         'Reunión Agendada', 'Cliente Cerrado'
@@ -159,7 +162,7 @@ const LeadCard = ({
   const handleStageForSending = async (tipo) => {
     if (tipo === 'activador') {
       const hasApertura = [
-        'Apertura Enviado', 'Respondió Apertura', 'Enviar Activador',
+        'Apertura Enviado', 'Respondió Apertura',
         'Activador Enviado', 'Respondió Activador', 'Video Enviado',
         'Respondió Video', 'Cierre Enviado', 'Respondió Cierre',
         'Reunión Agendada', 'Cliente Cerrado'
@@ -263,7 +266,7 @@ const LeadCard = ({
     if (s === 'Cliente Cerrado') return 100;
     if (s === 'Reunión Agendada') return 90;
     if (['Video Enviado', 'Respondió Video'].includes(s)) return 75;
-    if (['Enviar Activador', 'Activador Enviado', 'Respondió Activador'].includes(s)) return 50;
+    if (['Activador Enviado', 'Respondió Activador'].includes(s)) return 50;
     if (['Apertura Enviado', 'Respondió Apertura'].includes(s)) return 25;
     if (s === 'No Interesado') return 100;
     return 5;
@@ -272,11 +275,31 @@ const LeadCard = ({
   const statusColor = getStatusColor(lead.estado_contacto);
 
   return (
-    <div className={`h-fit group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border border-slate-200 hover:border-slate-300 ${
+    <div className={`h-fit group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-visible relative border hover:border-slate-300 ${
+      isSelected ? 'ring-2 ring-primary border-primary bg-primary/5' : 
       isStaged ? 'ring-2 ring-amber-400/30 border-amber-200' :
       isQueued ? 'ring-2 ring-primary/30 border-primary/20' :
-      isExpanded ? 'ring-2 ring-primary/5' : ''
+      isExpanded ? 'ring-2 ring-primary/5 border-slate-200' : 'border-slate-200'
     }`}>
+      
+      {/* Click Interceptor Overlay for Selection Mode */}
+      {isSelectionMode && (
+        <div 
+          className="absolute inset-0 z-50 cursor-pointer rounded-2xl" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+        />
+      )}
+
+      {/* Selection Checkbox */}
+      {isSelectionMode && (
+        <div className={`absolute top-4 left-4 z-40 transition-colors ${isSelected ? 'text-primary' : 'text-slate-300'}`}>
+          {isSelected ? <CheckSquare size={20} className="fill-white" /> : <Square size={20} className="fill-white" />}
+        </div>
+      )}
       
       {/* Progress Bar */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100 rounded-t-2xl overflow-hidden">
@@ -322,7 +345,7 @@ const LeadCard = ({
 
       {/* BLOQUE SUPERIOR: Info del Negocio */}
       <div className="p-5 sm:p-6 pb-2">
-        <div className="flex items-start justify-between pr-10 mb-3">
+        <div className={`flex items-start justify-between pr-10 mb-3 ${isSelectionMode ? 'pl-8' : ''}`}>
           <h3 className="font-bold text-base sm:text-lg tracking-tight text-slate-900 leading-tight line-clamp-2">
             {lead.nombre_salon}
           </h3>

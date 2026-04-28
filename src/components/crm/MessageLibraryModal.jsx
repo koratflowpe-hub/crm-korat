@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Plus, Edit3, Trash2, Save, BookOpen, Send, ThumbsUp,
   Target, Zap, History, HeartPulse, Clock, Star, Megaphone,
@@ -9,13 +9,24 @@ import { getTemplateRating } from '../../utils/crmHelpers';
 import { useThemeStore } from '../../store/themeStore';
 
 // ─── Mobile view: 'categories' | 'list' | 'editor'
-const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
+const MessageLibraryModal = ({ isOpen, onClose, onTabChange, initialTab = 'apertura' }) => {
   const { templates, createTemplate, updateTemplate, deleteTemplate, incrementSuccessCount, isLoading } = useTemplates();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [editingId, setEditingId] = useState(null);
   const [mobileView, setMobileView] = useState('categories'); // mobile step
   const [formData, setFormData] = useState({ nombre: '', contenido: '', etapa: initialTab });
   const [saved, setSaved] = useState(false);
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '260px'; // Reset to min-height to calculate properly if it shrunk
+      const scrollHeight = textareaRef.current.scrollHeight;
+      if (scrollHeight > 260) {
+        textareaRef.current.style.height = scrollHeight + 'px';
+      }
+    }
+  }, [formData.contenido, mobileView]);
 
   const CORE_ITEMS = [
     { id: 'apertura',   label: '01. Apertura',   icon: <Target className="w-5 h-5" />,     color: 'indigo',  bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-200' },
@@ -72,6 +83,7 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
 
   const handleTabChange = (id) => {
     setActiveTab(id);
+    if (onTabChange) onTabChange(id);
     setFormData(prev => ({ ...prev, etapa: id }));
     setEditingId(null);
     setMobileView('list');
@@ -334,9 +346,10 @@ const MessageLibraryModal = ({ isOpen, onClose, initialTab = 'apertura' }) => {
                 </div>
               </div>
               <textarea
+                ref={textareaRef}
                 value={formData.contenido}
                 onChange={e => setFormData({ ...formData, contenido: e.target.value })}
-                className="w-full text-lg leading-relaxed font-medium p-6 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all resize-none bg-slate-50/30"
+                className="w-full text-lg leading-relaxed font-medium p-6 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all resize-none bg-slate-50/30 overflow-hidden"
                 style={{ minHeight: '260px' }}
                 placeholder="Escribe el mensaje aquí... ✨&#10;&#10;Usa emojis y saltos de línea para hacerlo más legible."
               />

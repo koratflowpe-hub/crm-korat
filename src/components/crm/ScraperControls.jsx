@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet';
-import { Crosshair, Hash, X, Zap, Terminal, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { Crosshair, Hash, X, Zap, Terminal, ChevronDown, ChevronUp, Activity, Database } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 function MapClickHandler({ setLat, setLng }) {
@@ -19,7 +19,8 @@ const ScraperControls = ({
   limit, setLimit,
   pureKeywords, setPureKeywords,
   scraping, scraperLogs, setScraperLogs,
-  serverOnline, iniciarScraper, detenerScraper
+  serverOnline, iniciarScraper, detenerScraper,
+  isSavingConfig
 }) => {
   const [showConsole, setShowConsole] = useState(false);
   const scrollRef = useRef(null);
@@ -148,7 +149,18 @@ const ScraperControls = ({
               </div>
             </div>
             <div className="space-y-3">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Filtros de Nicho</label>
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Filtros de Nicho</label>
+                {isSavingConfig ? (
+                  <span className="text-[10px] font-bold text-indigo-500 animate-pulse flex items-center gap-1">
+                    <Database size={10} /> Guardando...
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                    <Database size={10} /> Sincronizado
+                  </span>
+                )}
+              </div>
               <div className="relative group">
                 <input
                   type="text"

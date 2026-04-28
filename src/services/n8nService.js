@@ -18,7 +18,7 @@ export const n8nService = {
    * @param {Object} data 
    * @param {string} data.phone - Número de teléfono del destinatario.
    * @param {string} data.message - Contenido del mensaje (soporta saltos de línea y emojis).
-   * @param {string} data.type - Tipo de mensaje (demo, rec_24h, rec_3h, post_cita, etc.).
+   * @param {string} data.type - Tipo de mensaje (rec_24h, rec_3h, post_cita, etc.).
    * @param {string} [data.lead_name] - Nombre del lead (opcional).
    * @param {string} [data.service] - Servicio de interés (opcional).
    * @returns {Promise<boolean>}

@@ -62,6 +62,33 @@ export const useLeads = () => {
     },
   });
 
+  const deleteMultipleLeadsMutation = useMutation({
+    mutationFn: async (leadsList) => {
+      // 1. Insertar todos los teléfonos válidos en leads_rechazados
+      const validLeads = leadsList.filter(l => l.telefono);
+      if (validLeads.length > 0) {
+        const rechazos = validLeads.map(l => ({
+          telefono: l.telefono,
+          nombre_salon: l.nombre_salon
+        }));
+        await supabase.from('leads_rechazados').upsert(rechazos);
+      }
+
+      // 2. Eliminar de leads_salones
+      const idsToDelete = leadsList.map(l => l.id);
+      const { error } = await supabase
+        .from('leads_salones')
+        .delete()
+        .in('id', idsToDelete);
+        
+      if (error) throw error;
+      return idsToDelete;
+    },
+    onSuccess: (deletedIds) => {
+      queryClient.setQueryData(['leads'], (old) => old.filter(l => !deletedIds.includes(l.id)));
+    },
+  });
+
   const createLeadMutation = useMutation({
     mutationFn: async (newLead) => {
       const { data, error } = await supabase
@@ -82,6 +109,7 @@ export const useLeads = () => {
     error,
     updateLead: (id, updates) => updateLeadMutation.mutate({ id, updates }),
     deleteLead: (leadObj) => deleteLeadMutation.mutate(leadObj),
+    deleteMultipleLeads: (leadsList) => deleteMultipleLeadsMutation.mutate(leadsList),
     createLead: (newLead) => createLeadMutation.mutate(newLead),
     // Helpers específicos para legibilidad
     updateEstado: (id, estado) => updateLeadMutation.mutate({ id, updates: { estado_contacto: estado } }),

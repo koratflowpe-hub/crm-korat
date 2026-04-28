@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 // Hooks
 import { useLeads } from '../hooks/useLeads';
 import { useScraper } from '../hooks/useScraper';
+import { useCrmConfig } from '../hooks/useCrmConfig';
 
 // Components
 import KPIDashboard from '../components/crm/KPIDashboard';
@@ -13,25 +14,27 @@ import LeadList from '../components/crm/LeadList';
 import AutomationHub from '../components/crm/AutomationHub';
 import { CreateLeadModal, EditLeadModal, DeleteLeadModal } from '../components/crm/Modals';
 import MessageLibraryModal from '../components/crm/MessageLibraryModal';
-import LiveDemoModal from '../components/crm/LiveDemoModal';
+import DrillDownModal from '../components/crm/DrillDownModal';
 
 // Utils
 import { formatWa } from '../utils/crmHelpers';
 
 export default function CRM() {
-  // State persistido en LocalStorage
-  const [pureKeywords, setPureKeywords] = useState(() => localStorage.getItem('kf_pureKeywords') || 'salon,belleza,uñas,spa,barberia');
-  const [radius, setRadius] = useState(() => Number(localStorage.getItem('kf_radius')) || 3000);
-  const [limit, setLimit] = useState(() => Number(localStorage.getItem('kf_limit')) || 15);
-  const [lat, setLat] = useState(() => Number(localStorage.getItem('kf_lat')) || -11.500); 
-  const [lng, setLng] = useState(() => Number(localStorage.getItem('kf_lng')) || -77.210);
+  // Configuración persistida en Supabase (Keywords, Radio, Límites, Ubicación)
+  const {
+    pureKeywords, setPureKeywords,
+    radius, setRadius,
+    limit, setLimit,
+    lat, setLat,
+    lng, setLng,
+    isSavingConfig
+  } = useCrmConfig();
 
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('leads'); // 'leads' | 'automation'
   
@@ -54,10 +57,25 @@ export default function CRM() {
     updateMensajeVideo,
     updateLastTemplateId,
     deleteLead, 
+    deleteMultipleLeads,
     createLead,
     updateLead,
     refetchLeads
   } = useLeads();
+
+  // Drill Down State
+  const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
+  const [drillDownProps, setDrillDownProps] = useState({
+    title: '',
+    leads: [],
+    colorClass: '',
+    bgColorClass: ''
+  });
+
+  const handleMetricClick = (title, list, colorClass, bgColorClass) => {
+    setDrillDownProps({ title, leads: list, colorClass, bgColorClass });
+    setIsDrillDownOpen(true);
+  };
 
   const {
     scraping,
@@ -67,15 +85,6 @@ export default function CRM() {
     detenerScraper,
     setScraperLogs
   } = useScraper();
-
-  // Persistencia
-  useEffect(() => {
-    localStorage.setItem('kf_pureKeywords', pureKeywords);
-    localStorage.setItem('kf_radius', radius.toString());
-    localStorage.setItem('kf_limit', limit.toString());
-    localStorage.setItem('kf_lat', lat.toString());
-    localStorage.setItem('kf_lng', lng.toString());
-  }, [pureKeywords, radius, limit, lat, lng]);
 
   // Fetch initial data (Zonas)
   useEffect(() => {
@@ -106,6 +115,37 @@ export default function CRM() {
       supabase.removeChannel(subLeads);
     };
   }, [refetchLeads]);
+
+  // Sincronización de la Biblioteca con la URL para persistencia
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const libraryParam = params.get('library');
+    if (libraryParam) {
+      setIsLibraryModalOpen(libraryParam === 'true' ? 'apertura' : libraryParam);
+    }
+  }, []);
+
+  const setLibraryUrl = (val) => {
+    const params = new URLSearchParams(window.location.search);
+    if (val) {
+      params.set('library', val === true ? 'apertura' : val);
+    } else {
+      params.delete('library');
+    }
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    window.history.replaceState({}, '', newUrl);
+  };
+
+  const handleOpenLibrary = (tab = 'apertura') => {
+    setIsLibraryModalOpen(tab);
+    setLibraryUrl(tab);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleCloseLibrary = () => {
+    setIsLibraryModalOpen(false);
+    setLibraryUrl(null);
+  };
 
   const handleCreateUser = (e) => {
     e.preventDefault();
@@ -163,15 +203,9 @@ export default function CRM() {
                         </div>
                      </div>
                   </div>
-                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                    <button 
-                     onClick={() => setIsDemoModalOpen(true)} 
-                     className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-100 active:scale-95"
-                   >
-                     <PlayCircle size={16} /> <span>Modo Demo</span>
-                   </button>
-                   <button 
-                     onClick={() => setIsLibraryModalOpen(true)} 
+                     onClick={() => handleOpenLibrary()} 
                      className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
                    >
                      <Database size={16} /> <span>Biblioteca de Mensajes</span>
@@ -210,20 +244,14 @@ export default function CRM() {
                    <Plus size={20} /> <span>Nuevo Registro</span>
                  </button>
                  
-                 <div className="grid grid-cols-2 gap-3">
+                 <div className="grid grid-cols-1">
                    <button 
-                     onClick={() => { setIsLibraryModalOpen(true); setIsMobileMenuOpen(false); }} 
+                     onClick={() => handleOpenLibrary()} 
                      className="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-4 rounded-2xl font-bold text-sm transition-all active:scale-95 border border-indigo-100"
                    >
-                     <Database size={18} /> <span>Scripts</span>
+                     <Database size={18} /> <span>Biblioteca de Mensajes</span>
                    </button>
-                   <button 
-                     onClick={() => { setIsDemoModalOpen(true); setIsMobileMenuOpen(false); }} 
-                     className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 p-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
-                   >
-                     <PlayCircle size={18} /> <span>Demo</span>
-                   </button>
-                 </div>
+                  </div>
               </div>
           </div>
         )}
@@ -259,7 +287,7 @@ export default function CRM() {
         {activeSection === 'leads' && (
           <>
             {/* Dashboard de KPIs */}
-            <KPIDashboard leads={leads} />
+            <KPIDashboard leads={leads} onMetricClick={handleMetricClick} />
 
             {/* Radar Panel */}
             <ScraperControls 
@@ -272,6 +300,7 @@ export default function CRM() {
               serverOnline={serverOnline}
               iniciarScraper={(params) => iniciarScraper(params, refetchLeads)}
               detenerScraper={detenerScraper}
+              isSavingConfig={isSavingConfig}
             />
 
             {/* Listado de Prospectos */}
@@ -285,11 +314,12 @@ export default function CRM() {
               updateMensajeVideo={updateMensajeVideo}
               updateLastTemplateId={updateLastTemplateId}
               deleteLead={deleteLead}
+              deleteMultipleLeads={deleteMultipleLeads}
               setEditingLead={setEditingLead}
               setIsEditModalOpen={setIsEditModalOpen}
               setLeadToDelete={setLeadToDelete}
               setIsDeleteModalOpen={setIsDeleteModalOpen}
-              setIsLibraryModalOpen={setIsLibraryModalOpen}
+              setIsLibraryModalOpen={handleOpenLibrary}
               updateLead={updateLead}
               formatWa={formatWa}
             />
@@ -328,12 +358,32 @@ export default function CRM() {
       <MessageLibraryModal
         isOpen={!!isLibraryModalOpen}
         initialTab={typeof isLibraryModalOpen === 'string' ? isLibraryModalOpen : 'apertura'}
-        onClose={() => setIsLibraryModalOpen(false)}
+        onClose={handleCloseLibrary}
+        onTabChange={setLibraryUrl}
       />
 
-      <LiveDemoModal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
+      {/* Drill Down Modal para KPIs */}
+      <DrillDownModal
+        isOpen={isDrillDownOpen}
+        onClose={() => setIsDrillDownOpen(false)}
+        title={drillDownProps.title}
+        leads={drillDownProps.leads}
+        colorClass={drillDownProps.colorClass}
+        bgColorClass={drillDownProps.bgColorClass}
+        updateEstado={updateEstado}
+        updateNotas={updateNotas}
+        updateMensajeApertura={updateMensajeApertura}
+        updateMensajeActivador={updateMensajeActivador}
+        updateMensajeVideo={updateMensajeVideo}
+        updateLastTemplateId={updateLastTemplateId}
+        deleteLead={deleteLead}
+        setEditingLead={setEditingLead}
+        setIsEditModalOpen={setIsEditModalOpen}
+        setLeadToDelete={setLeadToDelete}
+        setIsDeleteModalOpen={setIsDeleteModalOpen}
+        setIsLibraryModalOpen={handleOpenLibrary}
+        updateLead={updateLead}
+        formatWa={formatWa}
       />
     </div>
   );

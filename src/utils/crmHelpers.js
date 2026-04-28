@@ -1,10 +1,7 @@
 export const ESTADOS = [
-  'Pendiente Análisis IA',
   'Pendiente',
-  'Enviar Campaña Automática',
   'Apertura Enviado',
   'Respondió Apertura',
-  'Enviar Activador',
   'Activador Enviado',
   'Respondió Activador',
   'Video Enviado',
@@ -12,15 +9,14 @@ export const ESTADOS = [
   'Cierre Enviado',
   'Respondió Cierre',
   'Reunión Agendada',
-  'No Interesado',
-  'Cliente Cerrado'
+  'Cliente Cerrado',
+  'No Interesado'
 ];
 
 export const getStatusColor = (status) => {
     switch(status) {
         case 'Apertura Enviado': return 'bg-cyan-50 text-cyan-700 border-cyan-100';
         case 'Respondió Apertura': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-        case 'Enviar Activador': return 'bg-violet-50 text-violet-700 border-violet-100';
         case 'Activador Enviado': return 'bg-blue-50 text-blue-700 border-blue-100';
         case 'Respondió Activador': return 'bg-teal-50 text-teal-700 border-teal-100';
         case 'Video Enviado': return 'bg-rose-50 text-rose-700 border-rose-100';
@@ -29,7 +25,7 @@ export const getStatusColor = (status) => {
         case 'Respondió Cierre': return 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100';
         case 'Reunión Agendada': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
         case 'Cliente Cerrado': return 'bg-slate-900 text-white border-transparent';
-        case 'Pendiente Análisis IA': return 'bg-amber-50 text-amber-700 border-amber-100';
+        case 'No Interesado': return 'bg-rose-100 text-rose-800 border-rose-200';
         default: return 'bg-slate-100 text-slate-600 border-slate-200';
     }
 };
