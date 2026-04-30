@@ -15,6 +15,7 @@ import AutomationHub from '../components/crm/AutomationHub';
 import { CreateLeadModal, EditLeadModal, DeleteLeadModal } from '../components/crm/Modals';
 import MessageLibraryModal from '../components/crm/MessageLibraryModal';
 import DrillDownModal from '../components/crm/DrillDownModal';
+import AdvancedAnalytics from '../components/crm/AdvancedAnalytics';
 
 // Utils
 import { formatWa } from '../utils/crmHelpers';
@@ -27,6 +28,7 @@ export default function CRM() {
     limit, setLimit,
     lat, setLat,
     lng, setLng,
+    setCoords,
     isSavingConfig
   } = useCrmConfig();
 
@@ -36,7 +38,7 @@ export default function CRM() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('leads'); // 'leads' | 'automation'
+  const [activeSection, setActiveSection] = useState('leads'); // 'leads' | 'automation' | 'analytics'
   
   // Lead states para modales
   const [newLead, setNewLead] = useState({ nombre_salon: '', telefono: '', direccion: '', sitioweb: '' });
@@ -129,7 +131,7 @@ export default function CRM() {
     }
 
     const sectionParam = params.get('section');
-    if (sectionParam && (sectionParam === 'leads' || sectionParam === 'automation')) {
+    if (sectionParam && (sectionParam === 'leads' || sectionParam === 'automation' || sectionParam === 'analytics')) {
       setActiveSection(sectionParam);
     }
   }, []);
@@ -296,6 +298,16 @@ export default function CRM() {
           >
             🚀 Despacho
           </button>
+          <button
+            onClick={() => handleSectionChange('analytics')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+              activeSection === 'analytics'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+          >
+            📊 Radar PRO
+          </button>
         </div>
 
         {activeSection === 'leads' && (
@@ -305,7 +317,7 @@ export default function CRM() {
 
             {/* Radar Panel (Colapsable) */}
             <ScraperControls 
-              lat={lat} lng={lng} setLat={setLat} setLng={setLng}
+              lat={lat} lng={lng} setLat={setLat} setLng={setLng} setCoords={setCoords}
               zonas={zonas} radius={radius} setRadius={setRadius}
               limit={limit} setLimit={setLimit}
               pureKeywords={pureKeywords} setPureKeywords={setPureKeywords}
@@ -347,6 +359,10 @@ export default function CRM() {
 
         {activeSection === 'automation' && (
           <AutomationHub leads={leads} />
+        )}
+
+        {activeSection === 'analytics' && (
+          <AdvancedAnalytics leads={leads} />
         )}
       </main>
 

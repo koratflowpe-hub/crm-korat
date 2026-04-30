@@ -285,6 +285,44 @@ export function buildHeatMapData(leads) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DAILY STATS CALCULATOR
+// ─────────────────────────────────────────────────────────────
+export function calculateDailyStats(leads, dateOffset = 0) {
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() - dateOffset);
+  const dateStr = targetDate.toISOString().split('T')[0];
+
+  const stats = {
+    totalSent: 0,
+    totalResponded: 0,
+    respondedApertura: 0,
+    respondedActivador: 0,
+    respondedVideo: 0,
+    respondedCierre: 0,
+  };
+
+  leads.forEach(lead => {
+    // Check if sent on this date
+    if (lead.enviado_at && lead.enviado_at.split('T')[0] === dateStr) {
+      stats.totalSent++;
+    }
+
+    // Check if responded on this date
+    if (lead.respondido_at && lead.respondido_at.split('T')[0] === dateStr) {
+      stats.totalResponded++;
+      
+      const estado = lead.estado_contacto || '';
+      if (estado.includes('Apertura')) stats.respondedApertura++;
+      else if (estado.includes('Activador')) stats.respondedActivador++;
+      else if (estado.includes('Video')) stats.respondedVideo++;
+      else if (estado.includes('Cierre')) stats.respondedCierre++;
+    }
+  });
+
+  return stats;
+}
+
+// ─────────────────────────────────────────────────────────────
 // REACT HOOK
 // ─────────────────────────────────────────────────────────────
 export const useAutomation = () => {
@@ -311,11 +349,10 @@ export const useAutomation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads_salones')
-        .select('id, automation_status, staged_etapa, enviado_at, respondido_at, response_time_minutes')
-        .in('automation_status', ['sent', 'failed', 'cancelled'])
+        .select('id, automation_status, staged_etapa, enviado_at, respondido_at, response_time_minutes, estado_contacto')
         .not('enviado_at', 'is', null)
         .order('enviado_at', { ascending: false })
-        .limit(500);
+        .limit(1000);
       if (error) throw error;
       return data || [];
     },
@@ -413,6 +450,9 @@ export const useAutomation = () => {
     [stagedLeads]
   );
 
+  const todayStats = useMemo(() => calculateDailyStats(analyticsLeads, 0), [analyticsLeads]);
+  const yesterdayStats = useMemo(() => calculateDailyStats(analyticsLeads, 1), [analyticsLeads]);
+
   const stagedCount = stagedLeads.filter(l => l.automation_status === 'staged').length;
   const queuedCount = stagedLeads.filter(l => l.automation_status === 'queued').length;
 
@@ -436,6 +476,8 @@ export const useAutomation = () => {
     ghostingLeads,
     heatMapData,
     diversityCheck,
+    todayStats,
+    yesterdayStats,
     loadingStaged,
     // Actions
     stageForSending: useCallback(

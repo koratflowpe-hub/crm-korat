@@ -74,16 +74,31 @@ export const useCrmConfig = () => {
   const debounceTimer = useRef(null);
 
   const updateField = (field, value) => {
-    const newConfig = { ...config, [field]: value };
-    setConfig(newConfig);
+    // Usamos actualización funcional para evitar race conditions cuando se actualizan varios campos rápido (como lat y lng)
+    setConfig(prev => {
+      const newConfig = { ...prev, [field]: value };
+      
+      // Debounce para guardar en Supabase
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        saveToSupabase(newConfig);
+      }, 800);
 
-    // Cancelar timer previo
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      return newConfig;
+    });
+  };
 
-    // Programar guardado en 800ms
-    debounceTimer.current = setTimeout(() => {
-      saveToSupabase(newConfig);
-    }, 800);
+  const setCoords = (lat, lng) => {
+    setConfig(prev => {
+      const newConfig = { ...prev, lat, lng };
+      
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        saveToSupabase(newConfig);
+      }, 800);
+
+      return newConfig;
+    });
   };
 
   return {
@@ -95,6 +110,7 @@ export const useCrmConfig = () => {
     setLimit: (val) => updateField('limit', val),
     setLat: (val) => updateField('lat', val),
     setLng: (val) => updateField('lng', val),
+    setCoords,
     setConfig: (newConfig) => {
       setConfig(newConfig);
       saveToSupabase(newConfig);

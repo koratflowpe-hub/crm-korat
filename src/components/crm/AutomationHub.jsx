@@ -177,12 +177,100 @@ function ResponseHeatMap({ heatMapData }) {
   );
 }
 
+// ─── DAILY SUMMARY ───
+function DailySummary({ todayStats, yesterdayStats }) {
+  const [view, setView] = useState('today');
+  const stats = view === 'today' ? todayStats : yesterdayStats;
+
+  const StatItem = ({ label, value, subValue, color, icon: Icon }) => (
+    <div className="bg-white border border-slate-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-sm">
+      <div className={`p-2 rounded-xl bg-${color}-50 mb-2`}>
+        <Icon size={14} className={`text-${color}-500`} />
+      </div>
+      <span className="text-xl font-black text-slate-800">{value}</span>
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{label}</span>
+      {subValue && <span className="text-[9px] font-black text-emerald-500 mt-1">{subValue}</span>}
+    </div>
+  );
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={16} className="text-primary" />
+          <h3 className="text-sm font-black text-slate-800">Resumen de Desempeño</h3>
+        </div>
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          <button
+            onClick={() => setView('today')}
+            className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
+              view === 'today' ? 'bg-white text-primary shadow-sm' : 'text-slate-400'
+            }`}
+          >
+            Hoy
+          </button>
+          <button
+            onClick={() => setView('yesterday')}
+            className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
+              view === 'yesterday' ? 'bg-white text-primary shadow-sm' : 'text-slate-400'
+            }`}
+          >
+            Ayer
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatItem 
+          label="Mensajes Enviados" 
+          value={stats.totalSent} 
+          color="blue" 
+          icon={Send} 
+        />
+        <StatItem 
+          label="Respuestas Totales" 
+          value={stats.totalResponded} 
+          subValue={stats.totalSent > 0 ? `${Math.round((stats.totalResponded / stats.totalSent) * 100)}% tasa` : null}
+          color="emerald" 
+          icon={TrendingUp} 
+        />
+        <StatItem 
+          label="Conversión Apertura" 
+          value={stats.respondedApertura} 
+          color="primary" 
+          icon={Rocket} 
+        />
+        <StatItem 
+          label="Interés Activador" 
+          value={stats.respondedActivador} 
+          color="amber" 
+          icon={Zap} 
+        />
+      </div>
+
+      {/* Secondary metrics (Video/Cierre) */}
+      {(stats.respondedVideo > 0 || stats.respondedCierre > 0) && (
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Vieron Video</span>
+            <span className="text-sm font-black text-slate-700">{stats.respondedVideo}</span>
+          </div>
+          <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Respondieron Cierre</span>
+            <span className="text-sm font-black text-slate-700">{stats.respondedCierre}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── DIVERSITY METER ───
-function DiversityMeter({ diversityCheck, stagedCount }) {
+function DiversityMeter({ diversityCheck, stagedCount, ignoreDiversity, setIgnoreDiversity }) {
   const { isHealthy, diversity, warnings } = diversityCheck;
 
   return (
-    <div className={`rounded-2xl border p-4 ${isHealthy ? 'bg-white border-slate-100' : 'bg-rose-50 border-rose-200'}`}>
+    <div className={`rounded-2xl border p-4 ${isHealthy || ignoreDiversity ? 'bg-white border-slate-100' : 'bg-rose-50 border-rose-200'}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Shield size={14} className={isHealthy ? 'text-emerald-500' : 'text-rose-500'} />
@@ -204,6 +292,17 @@ function DiversityMeter({ diversityCheck, stagedCount }) {
 
       {warnings.length > 0 ? (
         <div className="space-y-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Advertencias</span>
+            <button 
+              onClick={() => setIgnoreDiversity(!ignoreDiversity)}
+              className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${
+                ignoreDiversity ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-200'
+              }`}
+            >
+              {ignoreDiversity ? 'Bypass Activo' : 'Omitir Bloqueo'}
+            </button>
+          </div>
           {warnings.map((w, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <AlertTriangle size={10} className="text-rose-500 shrink-0" />
@@ -261,6 +360,7 @@ export default function AutomationHub({ leads = [] }) {
   const {
     stagedLeads, analyticsLeads, stagedCount, queuedCount,
     ghostingLeads, heatMapData, diversityCheck,
+    todayStats, yesterdayStats,
     scheduleBatch, isScheduling, scheduleError,
     unstage, SCHEDULE_CONFIG: config,
   } = useAutomation();
@@ -272,6 +372,7 @@ export default function AutomationHub({ leads = [] }) {
   const [scheduleResult, setScheduleResult] = useState(null);
   const [activeTab, setActiveTab] = useState('bloques');
   const [isDispatching, setIsDispatching] = useState(false);
+  const [ignoreDiversity, setIgnoreDiversity] = useState(false);
 
   const handleDispatch = async () => {
     setIsDispatching(true);
@@ -298,7 +399,7 @@ export default function AutomationHub({ leads = [] }) {
   const staged = stagedLeads.filter(l => l.automation_status === 'staged');
   const queued = stagedLeads.filter(l => l.automation_status === 'queued');
 
-  const canSchedule = staged.length > 0 && diversityCheck.isHealthy;
+  const canSchedule = staged.length > 0 && (diversityCheck.isHealthy || ignoreDiversity);
 
   const handleSchedule = async () => {
     try {
@@ -420,11 +521,23 @@ export default function AutomationHub({ leads = [] }) {
 
           {/* Warning if diversity is bad */}
           {!diversityCheck.isHealthy && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2">
-              <AlertTriangle size={14} className="text-rose-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] font-bold text-rose-700">
-                ⚠️ Diversidad insuficiente. Usa variantes de la biblioteca para evitar bloqueos de WhatsApp.
-              </p>
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="text-rose-500 mt-0.5 shrink-0" />
+                <p className="text-[11px] font-bold text-rose-700">
+                  ⚠️ Diversidad insuficiente. Usa variantes de la biblioteca para evitar bloqueos de WhatsApp.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIgnoreDiversity(!ignoreDiversity)}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all active:scale-95 ${
+                  ignoreDiversity 
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' 
+                    : 'bg-white border border-rose-200 text-rose-600 hover:bg-rose-50'
+                }`}
+              >
+                {ignoreDiversity ? 'Omitir: ON' : 'Omitir Bloqueo'}
+              </button>
             </div>
           )}
 
@@ -525,7 +638,12 @@ export default function AutomationHub({ leads = [] }) {
       {/* ── TAB: COLA ── */}
       {activeTab === 'cola' && (
         <div className="p-5 sm:p-6">
-          <DiversityMeter diversityCheck={diversityCheck} stagedCount={stagedCount} />
+          <DiversityMeter 
+            diversityCheck={diversityCheck} 
+            stagedCount={stagedCount} 
+            ignoreDiversity={ignoreDiversity}
+            setIgnoreDiversity={setIgnoreDiversity}
+          />
           <GhostingPanel ghostingLeads={ghostingLeads} leads={leads} />
 
           {staged.length === 0 && queued.length === 0 ? (
@@ -583,7 +701,11 @@ export default function AutomationHub({ leads = [] }) {
       {/* ── TAB: RADAR ── */}
       {activeTab === 'radar' && (
         <div className="p-5 sm:p-6">
-          <ResponseHeatMap heatMapData={heatMapData} />
+          <DailySummary todayStats={todayStats} yesterdayStats={yesterdayStats} />
+          
+          <div className="border-t border-slate-100 pt-6 mt-2">
+            <ResponseHeatMap heatMapData={heatMapData} />
+          </div>
 
           {/* Summary stats */}
           <div className="grid grid-cols-3 gap-3 mt-6">

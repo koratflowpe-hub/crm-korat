@@ -1,0 +1,1384 @@
+{
+  "updatedAt": "2026-04-29T20:10:31.929Z",
+  "createdAt": "2026-03-25T00:51:47.980Z",
+  "id": "qor5B4a5iefcZF9Wtu6JY",
+  "name": "KoratFlow Scraper Visual",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-flash-lite-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-flash-lite-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Analiza este prospecto y genera el JSON:\n\nNombre: {{ $('Extraer Redes').item.json.data.nombre_salon }}\nCalificación Google: {{ $('Extraer Redes').item.json.data.calificacion }}\nSitio web: {{ $('Extraer Redes').item.json.data.sitioweb }}\nInfo redes sociales: {{ $('Extraer Redes').item.json.info_rrss }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "systemMessage": "=Eres un agente de ventas B2B especializado en \"Nilah IA\" para salones \ny estéticas en LATAM. Analizas prospectos de Google Maps y generas \ninteligencia de ventas lista para usar en WhatsApp.\n\n═══════════════════════════════════════\nCONOCIMIENTO DE NILAH IA\n═══════════════════════════════════════\n\nNilah IA es un sistema de WhatsApp marketing para salones de belleza.\nNo es un chatbot genérico. Resuelve 5 dolores reales:\n\n1. CLIENTAS DORMIDAS — Rescate automático a los 35, 60 y 90 días sin \n   visita. Mensajes con humor y complicidad, no spam.\n\n2. MES FLOJO — Campañas segmentadas por audiencia (ej: \"23 clientas de \n   pestañas sin cita hace 45 días\"). 4 campañas/mes listas en 1 clic.\n\n3. NO-SHOWS — Recordatorios 24h y 3h antes que generan respuesta, \n   no silencio. Pérdida promedio sin sistema: $105 USD/mes.\n\n4. RECORDATORIOS IGNORADOS — Activadores con tono cómplice, \n   no mensajes robóticos de sistema.\n\n5. MIEDO A SONAR DESESPERADA — Mensajes redactados con la voz del \n   salón, como si los escribiera una amiga. Anti-spam inteligente.\n\nDato de impacto: un salón promedio pierde ~$450 USD/mes por no mover \nsu lista. Plan Pro cuesta $159 USD/mes. ROI típico: 20 citas \nreactivadas = $300 USD recuperados en el primer mes.\n(transformalo a la moneda de soles peruanos)\n\n═══════════════════════════════════════\nCONTEXTO DEL PROSPECTO\n═══════════════════════════════════════\n\nRecibirás datos de un salón captado desde Google Maps:\n- Nombre del salón\n- Calificación Google (1 a 5 estrellas)\n- Sitio web (puede estar vacío o null)\n- Servicios detectados (extraídos por scraper)\n- Info de redes sociales (bio, posts, servicios detectados)\n\nUsa toda la info disponible para personalizar cada campo del JSON.\nSi falta un dato, márcalo como no detectado y NO apliques sus \nmodificadores positivos. Solo aplica modificadores negativos \nsi hay evidencia clara de ausencia.\n\nLa info de redes puede contener múltiples negocios con nombres \nsimilares. Usa SOLO los datos que correspondan al nombre exacto \ndel salón analizado. Si no puedes confirmar cuál perfil es el \ncorrecto, usa únicamente los servicios detectados y la calificación \nGoogle para personalizar. Nunca inventes datos que no estén presentes.\n\n═══════════════════════════════════════\nEMOJIS\n═══════════════════════════════════════\n\nmensaje_apertura: 1-2 emoji máximo, al final de oración.\nBanco permitido: 👀 ✨ 🔥 ⭐ 💅 👋 😊\n\nmensaje_activador: 2-3 emojis máximo.\nConfesión → 😅 😄 | CTA → 📲 🎯 👇\n\nfollowup_video: 1 emoji máximo al final.\nBanco permitido: 📲 🎯 ✨\n\nProhibido en todos: ❤️ 💕 y emojis al inicio de oración.\n\n═══════════════════════════════════════\nTU ÚNICA SALIDA: JSON con exactamente estas 9 propiedades\n═══════════════════════════════════════\n\n1. \"dolor_detectado\"\n   El síntoma más probable del negocio. Máx 15 palabras.\n   Basado en servicios, calificación y presencia digital.\n   Debe ser específico al tipo de salón, nunca genérico.\n\n2. \"gancho_venta\"\n   Cómo Nilah IA resuelve ese dolor. Máx 15 palabras.\n   Incluye número, resultado o tiempo si es posible.\n   Debe conectar directamente con dolor_detectado.\n\n3. \"score_interes\"\n   Entero del 0 al 100. Evalúa su potencial como lead.\n   El resultado final nunca puede ser menor a 0 ni mayor a 100.\n   Clampear al rango [0, 100] sin excepción.\n\n   Calificación Google:\n   - 4.5★ a 5★   → base 75\n   - 4.0★ a 4.4★ → base 60\n   - 3.0★ a 3.9★ → base 40\n   - menos de 3★ → base 20\n   - sin dato     → base 30\n\n   Modificadores (aplicar solo si hay evidencia clara):\n   + 10 si tiene sitio web propio (no null, no vacío)\n   + 10 si tiene redes sociales activas con contenido propio confirmado\n   + 5  si tiene más de 100 reseñas en Google\n   - 10 si no tiene web ni redes detectadas\n   - 5  si las reseñas mencionan problemas de atención o comunicación\n\n4. \"tags_ia\"\n   Array de 1 a 3 etiquetas según el perfil.\n   Prioriza las más específicas. Nunca repitas jerarquías.\n   Si aplica \"VIP\", no agregar \"Alta Prioridad\" (VIP ya lo incluye).\n\n   Jerarquía de etiquetas:\n   \"VIP\"            → score mayor a 85 Y redes activas confirmadas\n   \"Alta Prioridad\" → score mayor a 75 (solo si no aplica VIP)\n   \"Alto Volumen\"   → más de 200 reseñas en Google\n   \"Oportunidad\"    → score entre 50 y 74\n   \"Solo Redes\"     → solo presencia en redes, sin web\n   \"Sin Web\"        → no tiene sitio web detectado\n   \"Rescate\"        → calificación menor a 3.5 o reseñas negativas\n   \"Frío\"           → score menor a 40\n\n5. \"mensaje_apertura\"\n   PARTE 1 — Llegas como clienta potencial, nunca como vendedora.\n\n   Reglas:\n   - Menciona un servicio real y específico que ese salón ofrezca\n   - Referencia algo concreto de su perfil, redes o servicios detectados\n   - Máx 2 oraciones. 1 emoji al final de la primera oración\n   - Tono: curioso, natural, como alguien que realmente quiere ir\n   - Objetivo: que no puedan no responder\n\n   ❌ Prohibido:\n   - Observaciones genéricas: \"vi que tienen buenos servicios\", \n     \"su salón se ve muy bonito\", \"tienen buenas reseñas\"\n   - Mencionar \"Nilah IA\" o cualquier referencia a ventas\n   - Más de 2 oraciones\n\n   ✅ Obligatorio:\n   - Nombrar un servicio específico detectado en sus datos\n   - Que la pregunta invite a una respuesta simple (sí/no o fecha)\n\n   Estructura:\n   \"Hola! [Observación específica del salón o servicio] [emoji] \n   ¿[Pregunta concreta sobre disponibilidad o servicio]?\"\n\n6. \"mensaje_activador\"\n   PARTE 2 — Se envía cuando responden al mensaje_apertura.\n\n   Reglas:\n   - Confiesa con humor que no eres clienta\n   - Conecta directamente con el dolor_detectado de ese salón\n   - Incluye exactamente 1 dato de impacto concreto ($, citas o tiempo)\n   - Cierra SIEMPRE con el CTA fijo del video (ver abajo)\n   - Máx 4 oraciones en total\n   - Nunca menciones \"Nilah IA\"\n   - Nunca seas genérica: el dolor debe sentirse escrito para ese salón\n\n   CTA FIJO DE CIERRE (copiar exacto, solo cambia el emoji final):\n   \"¿Tienes 60 segundos? Tengo un video cortito que muestra \n   exactamente cómo funciona esto. 📲\"\n\n   Estructura:\n   \"[Confesión con humor 😅] [Dolor real y específico del salón] \n   [Dato de impacto concreto] [CTA fijo del video 📲]\"\n\n7. \"contexto_usado\"\n   Máx 12 palabras. Qué datos concretos usaste para personalizar.\n   Sé específico: menciona servicios, calificación y presencia digital.\n   Ej: \"Uñas y spa en servicios detectados, 4.2★, sin web propia\"\n\n8. \"followup_video\"\n   PARTE 3 — Se envía junto con el video, después de que confirman \n   querer verlo.\n\n   Reglas:\n   - Máx 2 oraciones\n   - Primera oración: baja la expectativa del video, no lo infles\n   - Segunda oración: abre la puerta a continuar si les resuena\n   - Nunca menciones \"Nilah IA\"\n   - 1 emoji máximo al final de la segunda oración\n   - Tono: relajado, sin presión, como una amiga que comparte algo\n\n   Ejemplo de tono correcto:\n   \"Son 90 segundos, nada de presentaciones largas. \n   Si algo te resuena, con gusto te cuento cómo \n   aplicaría para tu salón. 🎯\"\n\n9. Lista los servicios detectados que encontraste que usa o da ese salon de belleza.\n\n═══════════════════════════════════════\nREGLAS ABSOLUTAS\n═══════════════════════════════════════\n\n- Devuelve SOLO JSON puro. Sin markdown, sin texto extra, \n  sin comentarios, sin bloques de código.\n- Las 8 llaves presentes siempre, en este orden exacto.\n- Nunca uses \"Nilah IA\" en mensaje_apertura, mensaje_activador \n  ni followup_video.\n- mensaje_activador debe conectar con dolor_detectado. \n  Si suena genérico, reescríbelo.\n- tags_ia siempre es array aunque tenga 1 elemento: [\"tag\"]\n- score_interes siempre entero, nunca decimal.\n- score_interes siempre entre 0 y 100, sin excepción.\n- Si sitio web es null o vacío, trátalo como sin web detectada.\n- Nunca inventes servicios, reseñas o datos no presentes \n  en el input."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        -64
+      ],
+      "id": "37184f19-44bc-433f-84a7-b7c946442f79",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8Hk1HK6oZJJDtr4q",
+          "name": "Google Gemini-korat free"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Buscamos el texto en la ruta correcta de LangChain/Gemini\nconst inputData = $input.first().json;\nconst textoIA = inputData.content?.parts?.[0]?.text || inputData.text || inputData.message;\n\nif (!textoIA) {\n  throw new Error(\"No se recibió texto de la IA. Revisa la salida del nodo anterior.\");\n}\n\n// 2. Limpiamos los acentos invertidos de markdown si Gemini los puso\nconst jsonLimpio = textoIA.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// 3. Convertimos a objeto real\ntry {\n  const datos = JSON.parse(jsonLimpio);\n  return { json: datos };\n} catch (e) {\n  // Si falla el parseo, devolvemos el texto original para no romper el flujo\n  return { json: { error: \"Error al parsear JSON\", textoOriginal: textoIA } };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        -64
+      ],
+      "id": "a96d3cdd-c643-451d-8336-46b2d006d541",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?id=eq.{{ $('Supabase Upsert HTTP').first().json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates, return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"dolor_detectado\": \"{{ $json.dolor_detectado }}\",\n  \"gancho_venta\": \"{{ $json.gancho_venta }}\",\n  \"score_interes\": {{ $json.score_interes }},\n  \"tags_ia\": \"{ {{ $json.tags_ia ? $json.tags_ia.join(',') : '' }} }\",\n  \"mensaje_apertura\": \"{{ $json.mensaje_apertura }}\",\n  \"mensaje_activador\": \"{{ $json.mensaje_activador }}\",\n  \"estado_contacto\": \"Pendiente\",\n  \"contexto_usado\": \"{{ $json.contexto_usado }}\",\n  \"servicios_detectados\": \"{{ $json.servicios_detectados.join(', ') }}\"\n}",
+        "options": {}
+      },
+      "id": "e3f8dfc2-f7c9-441a-8312-c88b6f31c413",
+      "name": "Guardar todo este cerebro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2000,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nombre_salon\": {{ JSON.stringify($json.data.nombre_salon) }},\n  \"direccion\": {{ JSON.stringify($json.data.direccion) }},\n  \"telefono\": {{ JSON.stringify($json.data.telefono) }},\n  \"calificacion\": {{ $json.data.calificacion }},\n  \"total_resenas\": {{ $json.data.total_resenas }},\n  \"sitioweb\": {{ JSON.stringify($json.data.sitioweb) }},\n  \"url_instagram\": {{ JSON.stringify($json.url_instagram) }},\n  \"url_facebook\": {{ JSON.stringify($json.url_facebook) }},\n  \"estado_contacto\": {{ JSON.stringify($json.estado_contacto) }}\n}",
+        "options": {}
+      },
+      "id": "fb177ab2-a0ee-4e2e-8912-17fd7da93aad",
+      "name": "Supabase Upsert HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1200,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "koratflow-lead-ia",
+        "options": {}
+      },
+      "id": "c045cccb-c4a3-4270-a9ae-a64e00078a49",
+      "name": "Webhook CRM",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1712,
+        16
+      ],
+      "webhookId": "b8d7f8b6-4e5e-46d0-b011-065067bc855d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "AIzaSyB7M7AtB5rJ4uNoIKo356_1bPeaP-8iAl8"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.businessStatus,places.primaryType,places.websiteUri,places.editorialSummary"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"textQuery\": \"{{ $json.nicho }} en {{ $json.ubicacion }}\",\n  \"maxResultCount\": {{ $json.limit || 10 }},\n  \"languageCode\": \"es\",\n  \"locationBias\": {\n    \"circle\": {\n      \"center\": {\n        \"latitude\": {{ $json.lat }},\n        \"longitude\": {{ $json.lng }}\n      },\n      \"radius\": {{ $json.radius }}\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "470dbc06-2fad-404d-9ff7-7b85dd52ca00",
+      "name": "Google Places",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -816,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtener listas de los nodos de Supabase\nconst existingItems = $('Get Existing Leads').all();\nconst rejectedItems = $('Get Rejected Leads').all();\n\nlet blacklistedPhones = new Set();\nlet blacklistedNames = new Set();\n\nfunction processList(items) {\n  items.forEach(item => {\n    const lead = item.json;\n    if (lead.telefono) {\n      let p = lead.telefono.replace(/\\D/g, '');\n      if (p.length === 9 && p.startsWith('9')) p = '51' + p;\n      blacklistedPhones.add(p);\n    }\n    if (lead.nombre_salon) {\n      blacklistedNames.add(lead.nombre_salon.toLowerCase().trim());\n    }\n  });\n}\n\nprocessList(existingItems);\nprocessList(rejectedItems);\n\nconsole.log(`🛡️ Escudo Activo: Bloqueando ${blacklistedPhones.size} teléfonos y ${blacklistedNames.size} nombres conocidos.`);\n\n// 2. Datos del Webhook y Google\nconst webhookNode = $('Webhook CRM').first();\nconst webhook = webhookNode ? webhookNode.json.body : {};\nconst placesItems = $input.all();\nlet places = [];\n\nplacesItems.forEach(item => {\n  if (item.json.places && Array.isArray(item.json.places)) places.push(...item.json.places);\n  else if (item.json) places.push(item.json);\n});\n\nconst limit = parseInt(webhook.limit) || 15;\nconst testMode = webhook.testMode === true || webhook.testMode === 'true';\n\nconst pureKeywordsRaw = webhook.pureKeywords || '';\nfunction normalizeStr(str) {\n  return (str || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\n}\nconst strictKeywords = pureKeywordsRaw.split(',')\n  .map(t => normalizeStr(t.trim()))\n  .filter(t => t.length > 0);\n\nlet validLeads = [];\n\nfor (const place of places) {\n  if (validLeads.length >= limit) break;\n  \n  const nombreOriginal = place.displayName?.text || 'Desconocido';\n  const nombreLower = nombreOriginal.toLowerCase().trim();\n  const nameNorm = normalizeStr(nombreOriginal);\n  const primaryType = normalizeStr(place.primaryType || '');\n  \n  let isValid = (testMode || strictKeywords.length === 0);\n  if (!isValid) {\n    for (const term of strictKeywords) {\n      if (nameNorm.includes(term) || primaryType.includes(term)) { isValid = true; break; }\n    }\n  }\n  if (!isValid) continue;\n\n  const telOriginal = place.nationalPhoneNumber || '';\n  if (!telOriginal) continue;\n\n  let cleanPhone = telOriginal.replace(/\\D/g, '');\n  if (cleanPhone.length === 9 && cleanPhone.startsWith('9')) cleanPhone = '51' + cleanPhone;\n\n  // BLOQUEO CRÍTICO\n  if (blacklistedPhones.has(cleanPhone)) {\n    console.log(`🚫 Bloqueado por Teléfono: ${cleanPhone}`);\n    continue;\n  }\n  \n  if (blacklistedNames.has(nombreLower)) {\n    console.log(`🚫 Bloqueado por Nombre: ${nombreOriginal}`);\n    continue;\n  }\n\n  // Evitar duplicados en el mismo batch\n  blacklistedPhones.add(cleanPhone);\n\n  validLeads.push({\n    nombre_salon: nombreOriginal,\n    direccion: place.formattedAddress || 'Sin dirección',\n    telefono: telOriginal,\n    cleanPhone: cleanPhone,\n    calificacion: place.rating || 0,\n    total_resenas: place.userRatingCount || 0,\n    sitioweb: place.websiteUri || null,\n    ubicacion: webhook.ubicacion || 'Localización detectada',\n    descripcion_google: place.editorialSummary?.text || '',\n    categorias: (place.types || []).join(', ')\n  });\n}\n\nreturn validLeads.map(l => ({ json: l }));"
+      },
+      "id": "805355b3-add1-4ef0-98d9-b44d32c408b9",
+      "name": "Filtrar y Limpiar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "893a894a-5a36-417f-af69-d731bf7adfc8",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        80,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evo.koratflow.agency/chat/whatsappNumbers/KoratFlow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "2C8CB56FF12E-44C0-8002-73BF0A2879AA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"numbers\": [\"{{ $json.data.cleanPhone }}\"]\n}",
+        "options": {}
+      },
+      "id": "d916b085-f1d0-467b-a8ca-eb71a41ae98f",
+      "name": "Verificar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        304,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "4e6865059bd96ab759aff3cc5c151b10e0ab6966"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"q\": \"{{ ($('Split In Batches').item.json.data.nombre_salon + ' ' + $('Split In Batches').item.json.data.ubicacion).replace(/\"/g, '\\\\\"') }}\",\n  \"gl\": \"pe\",\n  \"hl\": \"es\",\n  \"num\": 5\n}",
+        "options": {}
+      },
+      "id": "06451402-9345-43e8-993f-4cd9b26fe14e",
+      "name": "Buscar en Serper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        752,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const serperData = $input.item.json;\nconst leadInfo = $('Split In Batches').item.json;\n\nlet url_instagram = null;\nlet url_facebook = null;\nlet info_rrss = '';\n\n(serperData.organic || []).forEach(res => {\n   info_rrss += `[${res.title}] ${res.snippet}\\n\\n`;\n   const lcUrl = res.link.toLowerCase();\n   if (lcUrl.includes('instagram.com') && !url_instagram) url_instagram = res.link;\n   if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !url_facebook) url_facebook = res.link;\n});\n\nleadInfo.url_instagram = url_instagram;\nleadInfo.url_facebook = url_facebook;\nleadInfo.info_rrss = info_rrss;\nleadInfo.estado_contacto = 'Pendiente Análisis IA';\n\nreturn { json: leadInfo };"
+      },
+      "id": "45a12687-d170-4d03-a2b2-f28656370532",
+      "name": "Extraer Redes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 3,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "92d431a8-82b6-4c1a-a3b6-0b8b6b4cb9ce",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        528,
+        -128
+      ],
+      "id": "aa9e5360-131e-457b-b2aa-9397e60a9c08",
+      "name": "tiene whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $('Webhook CRM').first().json.body;\nconst keywords = (webhookData.pureKeywords || \"\").split(',');\n\nreturn keywords.map(kw => ({\n  json: {\n    ...webhookData,\n    nicho: kw.trim()\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        16
+      ],
+      "id": "7cc3d08c-2aff-49aa-9ba6-7577859d7292",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        16
+      ],
+      "id": "22a56fe8-480c-4f46-8161-993bb67eb224",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        16
+      ],
+      "id": "79d58ebb-edb1-4761-8e8d-3ac83bf5cdc3",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?select=telefono",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-existing-leads-123",
+      "name": "Get Existing Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1488,
+        16
+      ],
+      "alwaysOutputData": true,
+      "settings": {
+        "executeOnce": true
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_rechazados?select=telefono,nombre_salon&limit=10000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-rejected-leads-node-id-3",
+      "name": "Get Rejected Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1264,
+        16
+      ],
+      "alwaysOutputData": true,
+      "settings": {
+        "executeOnce": true
+      }
+    }
+  ],
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Guardar todo este cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Upsert HTTP": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook CRM": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Rejected Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Places": {
+      "main": [
+        [
+          {
+            "node": "Filtrar y Limpiar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar y Limpiar": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Verificar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "tiene whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar en Serper": {
+      "main": [
+        [
+          {
+            "node": "Extraer Redes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Redes": {
+      "main": [
+        [
+          {
+            "node": "Supabase Upsert HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tiene whatsapp": {
+      "main": [
+        [
+          {
+            "node": "Buscar en Serper",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Google Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Leads": {
+      "main": [
+        []
+      ]
+    },
+    "Get Rejected Leads": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timezone": "America/Lima",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Message a model": [
+      {
+        "json": {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"dolor_detectado\": \"Citas perdidas por clientas que no vuelven o no confirman.\",\n  \"gancho_venta\": \"Nilah IA recupera citas, confirma asistencias y llena tu agenda.\",\n  \"score_interes\": 40,\n  \"tags_ia\": [\n    \"Frío\",\n    \"Solo Redes\",\n    \"Sin Web\"\n  ],\n  \"mensaje_apertura\": \"Hola! Vi en sus redes que ofrecen alisado 100% orgánico ✨ ¿Tienen disponibilidad para el próximo mes?\",\n  \"mensaje_activador\": \"Qué roche, me descubrieron 😅 Es que veía su estudio y pensé en cuántas citas se pierden por clientas que no regresan o se olvidan de confirmar. Un salón como el tuyo puede estar perdiendo hasta S/1665 al mes por clientas dormidas o citas no confirmadas. ¿Tienes 60 segundos? Tengo un video cortito que muestra exactamente cómo funciona esto. 📲\",\n  \"contexto_usado\": \"Alisado orgánico y color en redes, sin Google rating ni web.\",\n  \"followup_video\": \"Es un video de 90 segundos, nada de presentaciones largas. Si algo te resuena, conversamos cómo aplicaría para tu estudio. ✨\",\n  \"servicios_detectados\": [\n    \"alisado\",\n    \"color\",\n    \"tratamientos capilares\",\n    \"alisado 100% orgánico\"\n  ]\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      }
+    ],
+    "Webhook CRM": [
+      {
+        "json": {
+          "headers": {
+            "host": "hooks.koratflow.agency",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+            "content-length": "152",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9,es;q=0.8",
+            "content-type": "application/json",
+            "forwarded": "for=38.43.130.140;host=hooks.koratflow.agency;proto=https",
+            "origin": "https://crm-korat.vercel.app",
+            "priority": "u=1, i",
+            "referer": "https://crm-korat.vercel.app/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-forwarded-for": "98.84.134.236",
+            "x-forwarded-host": "hooks.koratflow.agency",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "98e1b8efcfa1",
+            "x-real-ip": "98.84.134.236",
+            "x-vercel-forwarded-for": "38.43.130.140",
+            "x-vercel-id": "iad1::vwb9s-1777480994523-55620577740d",
+            "x-vercel-ja4-digest": "t13d1517h2_8daaf6152771_dcad5a053991",
+            "x-vercel-proxied-for": "38.43.130.140",
+            "x-vercel-proxy-signature": "Bearer 6ecc6b49e3d48e64f622f0d30dd1e6196325d746ede64dc4b0d99acbc89ef045",
+            "x-vercel-proxy-signature-ts": "1777481294"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "ubicacion": "Huaral",
+            "lat": -11.5,
+            "lng": -77.21,
+            "radius": 3000,
+            "limit": 15,
+            "pureKeywords": "salon,belleza,beauty,uñas,pestañas,lash,nail",
+            "testMode": true
+          },
+          "webhookUrl": "https://hooks.koratflow.agency/webhook/koratflow-lead-ia",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "versionId": "6049f98f-19f9-47d3-bd6a-70e82d83cb8b",
+  "activeVersionId": "6049f98f-19f9-47d3-bd6a-70e82d83cb8b",
+  "versionCounter": 487,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-03-25T00:51:47.980Z",
+      "createdAt": "2026-03-25T00:51:47.980Z",
+      "role": "workflow:owner",
+      "workflowId": "qor5B4a5iefcZF9Wtu6JY",
+      "projectId": "sA8ckt8P82yNdIlU",
+      "project": {
+        "updatedAt": "2025-11-17T01:59:41.295Z",
+        "createdAt": "2025-10-17T19:31:11.869Z",
+        "id": "sA8ckt8P82yNdIlU",
+        "name": "Martin Pestana <martinenrique.pe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "c612407f-0cf9-4449-98fb-cd7a81f11afe",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-17T19:31:11.869Z",
+            "createdAt": "2025-10-17T19:31:11.869Z",
+            "userId": "c612407f-0cf9-4449-98fb-cd7a81f11afe",
+            "projectId": "sA8ckt8P82yNdIlU",
+            "user": {
+              "updatedAt": "2026-04-29T14:43:12.599Z",
+              "createdAt": "2025-10-17T19:31:11.168Z",
+              "id": "c612407f-0cf9-4449-98fb-cd7a81f11afe",
+              "email": "martinenrique.pe@gmail.com",
+              "firstName": "Martin",
+              "lastName": "Pestana",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-10-17T19:48:49.368Z",
+                "personalization_survey_n8n_version": "1.115.3",
+                "companySize": "<20",
+                "companyType": "digital-agency",
+                "automationGoalSm": [
+                  "ad-campaign"
+                ],
+                "role": "sales-and-marketing",
+                "reportedSource": "linkedin"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "RT1L2Qp3EfO2zVvV",
+                "userActivatedAt": 1762823143281,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1764694725108
+                },
+                "dismissedCallouts": {
+                  "aiAgentStarterCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-04-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-03-25T01:22:31.220Z",
+      "createdAt": "2026-03-25T01:22:31.220Z",
+      "id": "NmldinicdbmVWm96",
+      "name": "CRM - KoratFlow"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-04-29T20:10:31.931Z",
+    "createdAt": "2026-04-29T20:10:31.931Z",
+    "versionId": "6049f98f-19f9-47d3-bd6a-70e82d83cb8b",
+    "workflowId": "qor5B4a5iefcZF9Wtu6JY",
+    "nodes": [
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "value": "models/gemini-3.1-flash-lite-preview",
+            "mode": "list",
+            "cachedResultName": "models/gemini-3.1-flash-lite-preview"
+          },
+          "messages": {
+            "values": [
+              {
+                "content": "=Analiza este prospecto y genera el JSON:\n\nNombre: {{ $('Extraer Redes').item.json.data.nombre_salon }}\nCalificación Google: {{ $('Extraer Redes').item.json.data.calificacion }}\nSitio web: {{ $('Extraer Redes').item.json.data.sitioweb }}\nInfo redes sociales: {{ $('Extraer Redes').item.json.info_rrss }}"
+              }
+            ]
+          },
+          "builtInTools": {},
+          "options": {
+            "systemMessage": "=Eres un agente de ventas B2B especializado en \"Nilah IA\" para salones \ny estéticas en LATAM. Analizas prospectos de Google Maps y generas \ninteligencia de ventas lista para usar en WhatsApp.\n\n═══════════════════════════════════════\nCONOCIMIENTO DE NILAH IA\n═══════════════════════════════════════\n\nNilah IA es un sistema de WhatsApp marketing para salones de belleza.\nNo es un chatbot genérico. Resuelve 5 dolores reales:\n\n1. CLIENTAS DORMIDAS — Rescate automático a los 35, 60 y 90 días sin \n   visita. Mensajes con humor y complicidad, no spam.\n\n2. MES FLOJO — Campañas segmentadas por audiencia (ej: \"23 clientas de \n   pestañas sin cita hace 45 días\"). 4 campañas/mes listas en 1 clic.\n\n3. NO-SHOWS — Recordatorios 24h y 3h antes que generan respuesta, \n   no silencio. Pérdida promedio sin sistema: $105 USD/mes.\n\n4. RECORDATORIOS IGNORADOS — Activadores con tono cómplice, \n   no mensajes robóticos de sistema.\n\n5. MIEDO A SONAR DESESPERADA — Mensajes redactados con la voz del \n   salón, como si los escribiera una amiga. Anti-spam inteligente.\n\nDato de impacto: un salón promedio pierde ~$450 USD/mes por no mover \nsu lista. Plan Pro cuesta $159 USD/mes. ROI típico: 20 citas \nreactivadas = $300 USD recuperados en el primer mes.\n(transformalo a la moneda de soles peruanos)\n\n═══════════════════════════════════════\nCONTEXTO DEL PROSPECTO\n═══════════════════════════════════════\n\nRecibirás datos de un salón captado desde Google Maps:\n- Nombre del salón\n- Calificación Google (1 a 5 estrellas)\n- Sitio web (puede estar vacío o null)\n- Servicios detectados (extraídos por scraper)\n- Info de redes sociales (bio, posts, servicios detectados)\n\nUsa toda la info disponible para personalizar cada campo del JSON.\nSi falta un dato, márcalo como no detectado y NO apliques sus \nmodificadores positivos. Solo aplica modificadores negativos \nsi hay evidencia clara de ausencia.\n\nLa info de redes puede contener múltiples negocios con nombres \nsimilares. Usa SOLO los datos que correspondan al nombre exacto \ndel salón analizado. Si no puedes confirmar cuál perfil es el \ncorrecto, usa únicamente los servicios detectados y la calificación \nGoogle para personalizar. Nunca inventes datos que no estén presentes.\n\n═══════════════════════════════════════\nEMOJIS\n═══════════════════════════════════════\n\nmensaje_apertura: 1-2 emoji máximo, al final de oración.\nBanco permitido: 👀 ✨ 🔥 ⭐ 💅 👋 😊\n\nmensaje_activador: 2-3 emojis máximo.\nConfesión → 😅 😄 | CTA → 📲 🎯 👇\n\nfollowup_video: 1 emoji máximo al final.\nBanco permitido: 📲 🎯 ✨\n\nProhibido en todos: ❤️ 💕 y emojis al inicio de oración.\n\n═══════════════════════════════════════\nTU ÚNICA SALIDA: JSON con exactamente estas 9 propiedades\n═══════════════════════════════════════\n\n1. \"dolor_detectado\"\n   El síntoma más probable del negocio. Máx 15 palabras.\n   Basado en servicios, calificación y presencia digital.\n   Debe ser específico al tipo de salón, nunca genérico.\n\n2. \"gancho_venta\"\n   Cómo Nilah IA resuelve ese dolor. Máx 15 palabras.\n   Incluye número, resultado o tiempo si es posible.\n   Debe conectar directamente con dolor_detectado.\n\n3. \"score_interes\"\n   Entero del 0 al 100. Evalúa su potencial como lead.\n   El resultado final nunca puede ser menor a 0 ni mayor a 100.\n   Clampear al rango [0, 100] sin excepción.\n\n   Calificación Google:\n   - 4.5★ a 5★   → base 75\n   - 4.0★ a 4.4★ → base 60\n   - 3.0★ a 3.9★ → base 40\n   - menos de 3★ → base 20\n   - sin dato     → base 30\n\n   Modificadores (aplicar solo si hay evidencia clara):\n   + 10 si tiene sitio web propio (no null, no vacío)\n   + 10 si tiene redes sociales activas con contenido propio confirmado\n   + 5  si tiene más de 100 reseñas en Google\n   - 10 si no tiene web ni redes detectadas\n   - 5  si las reseñas mencionan problemas de atención o comunicación\n\n4. \"tags_ia\"\n   Array de 1 a 3 etiquetas según el perfil.\n   Prioriza las más específicas. Nunca repitas jerarquías.\n   Si aplica \"VIP\", no agregar \"Alta Prioridad\" (VIP ya lo incluye).\n\n   Jerarquía de etiquetas:\n   \"VIP\"            → score mayor a 85 Y redes activas confirmadas\n   \"Alta Prioridad\" → score mayor a 75 (solo si no aplica VIP)\n   \"Alto Volumen\"   → más de 200 reseñas en Google\n   \"Oportunidad\"    → score entre 50 y 74\n   \"Solo Redes\"     → solo presencia en redes, sin web\n   \"Sin Web\"        → no tiene sitio web detectado\n   \"Rescate\"        → calificación menor a 3.5 o reseñas negativas\n   \"Frío\"           → score menor a 40\n\n5. \"mensaje_apertura\"\n   PARTE 1 — Llegas como clienta potencial, nunca como vendedora.\n\n   Reglas:\n   - Menciona un servicio real y específico que ese salón ofrezca\n   - Referencia algo concreto de su perfil, redes o servicios detectados\n   - Máx 2 oraciones. 1 emoji al final de la primera oración\n   - Tono: curioso, natural, como alguien que realmente quiere ir\n   - Objetivo: que no puedan no responder\n\n   ❌ Prohibido:\n   - Observaciones genéricas: \"vi que tienen buenos servicios\", \n     \"su salón se ve muy bonito\", \"tienen buenas reseñas\"\n   - Mencionar \"Nilah IA\" o cualquier referencia a ventas\n   - Más de 2 oraciones\n\n   ✅ Obligatorio:\n   - Nombrar un servicio específico detectado en sus datos\n   - Que la pregunta invite a una respuesta simple (sí/no o fecha)\n\n   Estructura:\n   \"Hola! [Observación específica del salón o servicio] [emoji] \n   ¿[Pregunta concreta sobre disponibilidad o servicio]?\"\n\n6. \"mensaje_activador\"\n   PARTE 2 — Se envía cuando responden al mensaje_apertura.\n\n   Reglas:\n   - Confiesa con humor que no eres clienta\n   - Conecta directamente con el dolor_detectado de ese salón\n   - Incluye exactamente 1 dato de impacto concreto ($, citas o tiempo)\n   - Cierra SIEMPRE con el CTA fijo del video (ver abajo)\n   - Máx 4 oraciones en total\n   - Nunca menciones \"Nilah IA\"\n   - Nunca seas genérica: el dolor debe sentirse escrito para ese salón\n\n   CTA FIJO DE CIERRE (copiar exacto, solo cambia el emoji final):\n   \"¿Tienes 60 segundos? Tengo un video cortito que muestra \n   exactamente cómo funciona esto. 📲\"\n\n   Estructura:\n   \"[Confesión con humor 😅] [Dolor real y específico del salón] \n   [Dato de impacto concreto] [CTA fijo del video 📲]\"\n\n7. \"contexto_usado\"\n   Máx 12 palabras. Qué datos concretos usaste para personalizar.\n   Sé específico: menciona servicios, calificación y presencia digital.\n   Ej: \"Uñas y spa en servicios detectados, 4.2★, sin web propia\"\n\n8. \"followup_video\"\n   PARTE 3 — Se envía junto con el video, después de que confirman \n   querer verlo.\n\n   Reglas:\n   - Máx 2 oraciones\n   - Primera oración: baja la expectativa del video, no lo infles\n   - Segunda oración: abre la puerta a continuar si les resuena\n   - Nunca menciones \"Nilah IA\"\n   - 1 emoji máximo al final de la segunda oración\n   - Tono: relajado, sin presión, como una amiga que comparte algo\n\n   Ejemplo de tono correcto:\n   \"Son 90 segundos, nada de presentaciones largas. \n   Si algo te resuena, con gusto te cuento cómo \n   aplicaría para tu salón. 🎯\"\n\n9. Lista los servicios detectados que encontraste que usa o da ese salon de belleza.\n\n═══════════════════════════════════════\nREGLAS ABSOLUTAS\n═══════════════════════════════════════\n\n- Devuelve SOLO JSON puro. Sin markdown, sin texto extra, \n  sin comentarios, sin bloques de código.\n- Las 8 llaves presentes siempre, en este orden exacto.\n- Nunca uses \"Nilah IA\" en mensaje_apertura, mensaje_activador \n  ni followup_video.\n- mensaje_activador debe conectar con dolor_detectado. \n  Si suena genérico, reescríbelo.\n- tags_ia siempre es array aunque tenga 1 elemento: [\"tag\"]\n- score_interes siempre entero, nunca decimal.\n- score_interes siempre entre 0 y 100, sin excepción.\n- Si sitio web es null o vacío, trátalo como sin web detectada.\n- Nunca inventes servicios, reseñas o datos no presentes \n  en el input."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "typeVersion": 1.1,
+        "position": [
+          1424,
+          -64
+        ],
+        "id": "37184f19-44bc-433f-84a7-b7c946442f79",
+        "name": "Message a model",
+        "credentials": {
+          "googlePalmApi": {
+            "id": "8Hk1HK6oZJJDtr4q",
+            "name": "Google Gemini-korat free"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// 1. Buscamos el texto en la ruta correcta de LangChain/Gemini\nconst inputData = $input.first().json;\nconst textoIA = inputData.content?.parts?.[0]?.text || inputData.text || inputData.message;\n\nif (!textoIA) {\n  throw new Error(\"No se recibió texto de la IA. Revisa la salida del nodo anterior.\");\n}\n\n// 2. Limpiamos los acentos invertidos de markdown si Gemini los puso\nconst jsonLimpio = textoIA.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// 3. Convertimos a objeto real\ntry {\n  const datos = JSON.parse(jsonLimpio);\n  return { json: datos };\n} catch (e) {\n  // Si falla el parseo, devolvemos el texto original para no romper el flujo\n  return { json: { error: \"Error al parsear JSON\", textoOriginal: textoIA } };\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1776,
+          -64
+        ],
+        "id": "a96d3cdd-c643-451d-8336-46b2d006d541",
+        "name": "Code in JavaScript"
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?id=eq.{{ $('Supabase Upsert HTTP').first().json.id }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "=sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+              },
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+              },
+              {
+                "name": "Prefer",
+                "value": "resolution=merge-duplicates, return=representation"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"dolor_detectado\": \"{{ $json.dolor_detectado }}\",\n  \"gancho_venta\": \"{{ $json.gancho_venta }}\",\n  \"score_interes\": {{ $json.score_interes }},\n  \"tags_ia\": \"{ {{ $json.tags_ia ? $json.tags_ia.join(',') : '' }} }\",\n  \"mensaje_apertura\": \"{{ $json.mensaje_apertura }}\",\n  \"mensaje_activador\": \"{{ $json.mensaje_activador }}\",\n  \"estado_contacto\": \"Pendiente\",\n  \"contexto_usado\": \"{{ $json.contexto_usado }}\",\n  \"servicios_detectados\": \"{{ $json.servicios_detectados.join(', ') }}\"\n}",
+          "options": {}
+        },
+        "id": "e3f8dfc2-f7c9-441a-8312-c88b6f31c413",
+        "name": "Guardar todo este cerebro",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2000,
+          -64
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+              },
+              {
+                "name": "Prefer",
+                "value": "return=representation,resolution=merge-duplicates"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"nombre_salon\": {{ JSON.stringify($json.data.nombre_salon) }},\n  \"direccion\": {{ JSON.stringify($json.data.direccion) }},\n  \"telefono\": {{ JSON.stringify($json.data.telefono) }},\n  \"calificacion\": {{ $json.data.calificacion }},\n  \"total_resenas\": {{ $json.data.total_resenas }},\n  \"sitioweb\": {{ JSON.stringify($json.data.sitioweb) }},\n  \"url_instagram\": {{ JSON.stringify($json.url_instagram) }},\n  \"url_facebook\": {{ JSON.stringify($json.url_facebook) }},\n  \"estado_contacto\": {{ JSON.stringify($json.estado_contacto) }}\n}",
+          "options": {}
+        },
+        "id": "fb177ab2-a0ee-4e2e-8912-17fd7da93aad",
+        "name": "Supabase Upsert HTTP",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          1200,
+          -64
+        ]
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "koratflow-lead-ia",
+          "options": {}
+        },
+        "id": "c045cccb-c4a3-4270-a9ae-a64e00078a49",
+        "name": "Webhook CRM",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          -1712,
+          16
+        ],
+        "webhookId": "b8d7f8b6-4e5e-46d0-b011-065067bc855d"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://places.googleapis.com/v1/places:searchText",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Goog-Api-Key",
+                "value": "AIzaSyB7M7AtB5rJ4uNoIKo356_1bPeaP-8iAl8"
+              },
+              {
+                "name": "X-Goog-FieldMask",
+                "value": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.businessStatus,places.primaryType,places.websiteUri,places.editorialSummary"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"textQuery\": \"{{ $json.nicho }} en {{ $json.ubicacion }}\",\n  \"maxResultCount\": {{ $json.limit || 10 }},\n  \"languageCode\": \"es\",\n  \"locationBias\": {\n    \"circle\": {\n      \"center\": {\n        \"latitude\": {{ $json.lat }},\n        \"longitude\": {{ $json.lng }}\n      },\n      \"radius\": {{ $json.radius }}\n    }\n  }\n}",
+          "options": {}
+        },
+        "id": "470dbc06-2fad-404d-9ff7-7b85dd52ca00",
+        "name": "Google Places",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          -816,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const SUPABASE_URL = 'https://hywlytsbogbassecflbw.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY';\nconst hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };\n\nlet blacklistedPhones = new Set();\nlet blacklistedNames = new Set();\n\ntry {\n  const [existingRes, rejectedRes] = await Promise.all([\n    $http.get(`${SUPABASE_URL}/rest/v1/leads_salones?select=telefono,nombre_salon&limit=10000`, { headers: hdrs }),\n    $http.get(`${SUPABASE_URL}/rest/v1/leads_rechazados?select=telefono,nombre_salon&limit=10000`, { headers: hdrs })\n  ]);\n  const allBlacklisted = [\n    ...(Array.isArray(existingRes.data) ? existingRes.data : []),\n    ...(Array.isArray(rejectedRes.data) ? rejectedRes.data : [])\n  ];\n  allBlacklisted.forEach(lead => {\n    if (lead.telefono) {\n      let p = lead.telefono.replace(/\\D/g, '');\n      if (p.length === 9 && p.startsWith('9')) p = '51' + p;\n      blacklistedPhones.add(p);\n    }\n    if (lead.nombre_salon) blacklistedNames.add(lead.nombre_salon.toLowerCase().trim());\n  });\n  console.log(`🛡️ Escudo: ${blacklistedPhones.size} teléfonos y ${blacklistedNames.size} nombres bloqueados.`);\n} catch(e) {\n  console.log('⚠️ Error cargando blacklists:', e.message);\n}\n\nconst webhookNode = $('Webhook CRM').first();\nconst webhook = webhookNode ? webhookNode.json.body : {};\n\nlet places = [];\nfor (const item of $input.all()) {\n  if (item.json && item.json.places && Array.isArray(item.json.places)) {\n    places.push(...item.json.places);\n  } else if (item.json) {\n    places.push(item.json);\n  }\n}\n\nconst pureKeywordsRaw = webhook.pureKeywords || '';\nconst limit = parseInt(webhook.limit) || 15;\nconst testMode = webhook.testMode === true || webhook.testMode === 'true';\n\nfunction normalizeStr(str) {\n  return (str || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\n}\n\nconst strictKeywords = pureKeywordsRaw.split(',')\n  .map(t => normalizeStr(t.trim()))\n  .filter(t => t.length > 0);\n\nlet validLeads = [];\nfor (const place of places) {\n  if (validLeads.length >= limit) break;\n  const nameNorm = normalizeStr(place.displayName?.text || '');\n  const primaryType = normalizeStr(place.primaryType || '');\n  const nombreOriginal = place.displayName?.text || 'Desconocido';\n  const nombreLower = nombreOriginal.toLowerCase().trim();\n  let isValid = (testMode || strictKeywords.length === 0);\n  if (!isValid) {\n    for (const term of strictKeywords) {\n      if (nameNorm.includes(term) || primaryType.includes(term)) { isValid = true; break; }\n    }\n  }\n  if (!isValid) continue;\n  if (!place.nationalPhoneNumber) continue;\n  let telefono = place.nationalPhoneNumber.replace(/\\s/g, '');\n  let cleanPhone = telefono.replace(/\\D/g, '');\n  if (cleanPhone.length === 9 && cleanPhone.startsWith('9')) cleanPhone = '51' + cleanPhone;\n  if (blacklistedPhones.has(cleanPhone)) {\n    console.log(`🚫 Bloqueado: ${cleanPhone} - ${nombreOriginal}`);\n    continue;\n  }\n  if (blacklistedNames.has(nombreLower)) {\n    console.log(`🚫 Bloqueado (nombre): ${nombreOriginal}`);\n    continue;\n  }\n  blacklistedPhones.add(cleanPhone);\n  blacklistedNames.add(nombreLower);\n  validLeads.push({\n    nombre_salon: nombreOriginal,\n    direccion: place.formattedAddress || 'Sin dirección',\n    telefono: telefono,\n    cleanPhone: cleanPhone,\n    calificacion: place.rating || 0,\n    total_resenas: place.userRatingCount || 0,\n    sitioweb: place.websiteUri || null,\n    ubicacion: webhook.ubicacion || 'Localización detectada',\n    descripcion_google: place.editorialSummary?.text || '',\n    categorias: (place.types || []).join(', ')\n  });\n}\n\nreturn validLeads.map(lead => ({ json: lead }));"
+        },
+        "id": "805355b3-add1-4ef0-98d9-b44d32c408b9",
+        "name": "Filtrar y Limpiar",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 1,
+        "position": [
+          -592,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "893a894a-5a36-417f-af69-d731bf7adfc8",
+        "name": "Split In Batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 2,
+        "position": [
+          80,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://evo.koratflow.agency/chat/whatsappNumbers/KoratFlow",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "apikey",
+                "value": "2C8CB56FF12E-44C0-8002-73BF0A2879AA"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"numbers\": [\"{{ $json.data.cleanPhone }}\"]\n}",
+          "options": {}
+        },
+        "id": "d916b085-f1d0-467b-a8ca-eb71a41ae98f",
+        "name": "Verificar WhatsApp",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          304,
+          -128
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://google.serper.dev/search",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-API-KEY",
+                "value": "4e6865059bd96ab759aff3cc5c151b10e0ab6966"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"q\": \"{{ ($('Split In Batches').item.json.data.nombre_salon + ' ' + $('Split In Batches').item.json.data.ubicacion).replace(/\"/g, '\\\\\"') }}\",\n  \"gl\": \"pe\",\n  \"hl\": \"es\",\n  \"num\": 5\n}",
+          "options": {}
+        },
+        "id": "06451402-9345-43e8-993f-4cd9b26fe14e",
+        "name": "Buscar en Serper",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          752,
+          -128
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const serperData = $input.item.json;\nconst leadInfo = $('Split In Batches').item.json;\n\nlet url_instagram = null;\nlet url_facebook = null;\nlet info_rrss = '';\n\n(serperData.organic || []).forEach(res => {\n   info_rrss += `[${res.title}] ${res.snippet}\\n\\n`;\n   const lcUrl = res.link.toLowerCase();\n   if (lcUrl.includes('instagram.com') && !url_instagram) url_instagram = res.link;\n   if ((lcUrl.includes('facebook.com') || lcUrl.includes('fb.com')) && !url_facebook) url_facebook = res.link;\n});\n\nleadInfo.url_instagram = url_instagram;\nleadInfo.url_facebook = url_facebook;\nleadInfo.info_rrss = info_rrss;\nleadInfo.estado_contacto = 'Pendiente Análisis IA';\n\nreturn { json: leadInfo };"
+        },
+        "id": "45a12687-d170-4d03-a2b2-f28656370532",
+        "name": "Extraer Redes",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 1,
+        "position": [
+          976,
+          -128
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "92d431a8-82b6-4c1a-a3b6-0b8b6b4cb9ce",
+                "leftValue": "={{ $json.exists }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          528,
+          -128
+        ],
+        "id": "aa9e5360-131e-457b-b2aa-9397e60a9c08",
+        "name": "tiene whatsapp"
+      },
+      {
+        "parameters": {
+          "jsCode": "const webhookData = $('Webhook CRM').first().json.body;\nconst keywords = (webhookData.pureKeywords || \"\").split(',');\n\nreturn keywords.map(kw => ({\n  json: {\n    ...webhookData,\n    nicho: kw.trim()\n  }\n}));"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1040,
+          16
+        ],
+        "id": "7cc3d08c-2aff-49aa-9ba6-7577859d7292",
+        "name": "Code in JavaScript1"
+      },
+      {
+        "parameters": {
+          "aggregate": "aggregateAllItemData",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.aggregate",
+        "typeVersion": 1,
+        "position": [
+          -368,
+          16
+        ],
+        "id": "22a56fe8-480c-4f46-8161-993bb67eb224",
+        "name": "Aggregate"
+      },
+      {
+        "parameters": {
+          "fieldToSplitOut": "data",
+          "include": "allOtherFields",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [
+          -144,
+          16
+        ],
+        "id": "79d58ebb-edb1-4761-8e8d-3ac83bf5cdc3",
+        "name": "Split Out"
+      },
+      {
+        "parameters": {
+          "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_salones?select=telefono",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "get-existing-leads-123",
+        "name": "Get Existing Leads",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          -1488,
+          16
+        ],
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "url": "https://hywlytsbogbassecflbw.supabase.co/rest/v1/leads_rechazados?select=telefono,nombre_salon&limit=10000",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_Cm6QdaFiOsQI743uYHBOkA_aSFqya6G"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2x5dHNib2diYXNzZWNmbGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODI2ODMsImV4cCI6MjA4OTk1ODY4M30.1FB0-PMfuTBJ9oJWRJMkKA3vQKkIS1LrNFXEvtmHpWY"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "get-rejected-leads-node-id-3",
+        "name": "Get Rejected Leads",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          -1264,
+          16
+        ],
+        "alwaysOutputData": true
+      }
+    ],
+    "connections": {
+      "Message a model": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Guardar todo este cerebro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase Upsert HTTP": {
+        "main": [
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Message a model",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook CRM": {
+        "main": [
+          [
+            {
+              "node": "Get Existing Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Places": {
+        "main": [
+          [
+            {
+              "node": "Filtrar y Limpiar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filtrar y Limpiar": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split In Batches": {
+        "main": [
+          [
+            {
+              "node": "Verificar WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verificar WhatsApp": {
+        "main": [
+          [
+            {
+              "node": "tiene whatsapp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar en Serper": {
+        "main": [
+          [
+            {
+              "node": "Extraer Redes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extraer Redes": {
+        "main": [
+          [
+            {
+              "node": "Supabase Upsert HTTP",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "tiene whatsapp": {
+        "main": [
+          [
+            {
+              "node": "Buscar en Serper",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript1": {
+        "main": [
+          [
+            {
+              "node": "Google Places",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Existing Leads": {
+        "main": [
+          [
+            {
+              "node": "Get Rejected Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Rejected Leads": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Martin Pestana",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-29T20:10:32.045Z",
+        "id": 1497,
+        "workflowId": "qor5B4a5iefcZF9Wtu6JY",
+        "versionId": "6049f98f-19f9-47d3-bd6a-70e82d83cb8b",
+        "event": "activated",
+        "userId": "c612407f-0cf9-4449-98fb-cd7a81f11afe"
+      }
+    ]
+  }
+}
